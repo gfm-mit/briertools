@@ -16,6 +16,10 @@ def brier_score(y_true, y_pred, threshold_range=None):
     - score: float
       The computed metric.
     """
+    #nope!  we should instead clip the prediction towards the right answer
+    #calculate the whole brier for that
+    #and subtract that off
+    #because we want only the integral of the part within the window
     if threshold_range is not None:
       y_pred = np.clip(y_pred, threshold_range[0], threshold_range[1])
     return np.mean((np.array(y_true) - np.array(y_pred)) ** 2)
