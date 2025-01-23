@@ -9,5 +9,6 @@ description = "Mixture of Thresholds based Consequentialist Binary Classifier Ev
 dependencies = [
     "numpy",
     "scikit-learn",
-    "matplotlib"
+    "matplotlib",
+    "scipy"
 ]
