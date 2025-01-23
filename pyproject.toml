@@ -8,5 +8,6 @@ version = "0.0.1"
 description = "Mixture of Thresholds based Consequentialist Binary Classifier Evaluation"
 dependencies = [
     "numpy",
-    "scikit-learn"
+    "scikit-learn",
+    "matplotlib"
 ]
