@@ -25,7 +25,7 @@ def log_loss(y_true, y_pred, threshold_range=None):
       y_true = np.clip(y_true, threshold_range[0], threshold_range[1])
     return np.mean(np.log(1 - np.abs(np.array(y_true) - np.array(y_pred))))
 
-def log_loss_curve(y_true, y_pred, label=None):
+def log_loss_curve(y_true, y_pred, label=None, threshold_range=None):
     """
     Calculates the Brier score for different thresholds.
 
@@ -44,7 +44,9 @@ def log_loss_curve(y_true, y_pred, label=None):
       The Brier scores for each threshold.
     """
     assert plt is not None, "matplotlib is required to plot the Brier curve"
-    zscore = np.linspace(*scipy.special.logit([0.01, 0.99]), 100)
+    if threshold_range is None:
+        threshold_range = [0.01, 0.99]
+    zscore = np.linspace(*scipy.special.logit(threshold_range), 100)
     expit = scipy.special.expit(zscore)
     idx = np.argsort(y_pred)
     insertion_indices = np.searchsorted(y_pred[idx], expit)
@@ -58,6 +60,9 @@ def log_loss_curve(y_true, y_pred, label=None):
     plt.plot(zscore, costs, label=label)
     plt.plot(zscore, np.minimum(expit, 1-expit), color="lightgray", linestyle="--", zorder=-10)
     ticks = [0.01, 0.1, 0.5, 0.9, 0.99]
+    if threshold_range is not None:
+        ticks = [1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0.5, 1-1e-1, 1-1e-2, 1-1e-3, 1-1e-4, 1-1e-5]
+        ticks = [tick for tick in ticks if threshold_range[0] <= tick <= threshold_range[1]]
     plt.xticks(scipy.special.logit(ticks), ticks)
     plt.xlabel("C/L")
     plt.ylabel("Regret")

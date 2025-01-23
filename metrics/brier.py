@@ -28,7 +28,7 @@ def brier_score(y_true, y_pred, threshold_range=None):
       y_true = np.clip(y_true, threshold_range[0], threshold_range[1])
     return np.mean((np.array(y_true) - np.array(y_pred)) ** 2)
 
-def brier_curve(y_true, y_pred, label=None):
+def brier_curve(y_true, y_pred, label=None, threshold_range=None):
     """
     Calculates the Brier score for different thresholds.
 
@@ -47,7 +47,9 @@ def brier_curve(y_true, y_pred, label=None):
       The Brier scores for each threshold.
     """
     assert plt is not None, "matplotlib is required to plot the Brier curve"
-    thresholds = np.linspace(0, 1, 100)
+    if threshold_range is None:
+        threshold_range = (0, 1)
+    thresholds = np.linspace(*threshold_range, 100)
     idx = np.argsort(y_pred)
     insertion_indices = np.searchsorted(y_pred[idx], thresholds)
     false_neg = np.cumsum(y_true[idx])[insertion_indices]
