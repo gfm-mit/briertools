@@ -25,6 +25,26 @@ def log_loss(y_true, y_pred, threshold_range=None):
       y_true = np.clip(y_true, threshold_range[0], threshold_range[1])
     return np.mean(np.log(1 - np.abs(np.array(y_true) - np.array(y_pred))))
 
+def get_logit_ticks(min_val, max_val):
+    """Generate tick marks for logit-scaled plots using append/prepend operations."""
+    assert 0 <= min_val < max_val <= 1
+        
+    ticks = [0.5] if min_val <= 0.5 <= max_val else []
+
+    bound = np.log10(min(min_val, 1-max_val))
+    bound = 2-int(bound)
+        
+    for power in range(1, bound):
+        val = 10.0 ** -power
+        
+        if min_val <= val <= max_val:
+            ticks.insert(0, val)
+        if min_val <= 1 - val <= max_val:
+            ticks.insert(0, 1 - val)
+    ticks = np.round(ticks, 16)
+        
+    return ticks
+
 def log_loss_curve(y_true, y_pred, label=None, threshold_range=None):
     """
     Calculates the Brier score for different thresholds.
@@ -61,8 +81,7 @@ def log_loss_curve(y_true, y_pred, label=None, threshold_range=None):
     plt.plot(zscore, np.minimum(expit, 1-expit), color="lightgray", linestyle="--", zorder=-10)
     ticks = [0.01, 0.1, 0.5, 0.9, 0.99]
     if threshold_range is not None:
-        ticks = [1e-5, 1e-4, 1e-3, 1e-2, 1e-1, 0.5, 1-1e-1, 1-1e-2, 1-1e-3, 1-1e-4, 1-1e-5]
-        ticks = [tick for tick in ticks if threshold_range[0] <= tick <= threshold_range[1]]
+      ticks = get_logit_ticks(threshold_range[0], threshold_range[1])
     plt.xticks(scipy.special.logit(ticks), ticks)
     plt.xlabel("C/L")
     plt.ylabel("Regret")
