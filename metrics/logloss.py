@@ -21,9 +21,12 @@ def log_loss(y_true, y_pred, threshold_range=None):
     - score: float
       The computed metric.
     """
+    score = np.mean(np.log(1 - np.abs(np.array(y_true) - np.array(y_pred))))
     if threshold_range is not None:
-      y_true = np.clip(y_true, threshold_range[0], threshold_range[1])
-    return np.mean(np.log(1 - np.abs(np.array(y_true) - np.array(y_pred))))
+      y_bound = np.array(threshold_range)[y_true]
+      baseline = np.mean(np.log(1 - np.abs(np.array(y_true) - np.array(y_bound))))
+      return score - baseline
+    return score
 
 def get_logit_ticks(min_val, max_val):
     """Generate tick marks for logit-scaled plots using append/prepend operations."""

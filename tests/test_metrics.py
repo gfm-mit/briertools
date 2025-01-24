@@ -16,7 +16,13 @@ class TestCustomMetric(unittest.TestCase):
         self.assertAlmostEqual(score, 0.09 -  0.04)  # Example assertion (adapt as needed)
 
     def test_log_loss(self):
-        y_true = [1, 2, 3]
-        y_pred = [1, 2, 3]
+        y_true = [0, 1, 1]
+        y_pred = [0.1, 0.5, 0.9]
         score = log_loss(y_true, y_pred)
-        self.assertEqual(score, 0)  # Example assertion (adapt as needed)
+        self.assertAlmostEqual(score, -0.30128940395)
+
+    def test_log_loss_thresholded(self):
+        y_true = [0, 1, 1]
+        y_pred = [0.1, 0.5, 0.9]
+        score = log_loss(y_true, y_pred, threshold_range=(0.2, 0.8))
+        self.assertAlmostEqual(score, -0.30128940395 - -0.22314355131)  # Example assertion (adapt as needed)
