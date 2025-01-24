@@ -24,9 +24,12 @@ def brier_score(y_true, y_pred, threshold_range=None):
     #calculate the whole brier for that
     #and subtract that off
     #because we want only the integral of the part within the window
+    score = np.mean((np.array(y_true) - np.array(y_pred)) ** 2)
     if threshold_range is not None:
-      y_true = np.clip(y_true, threshold_range[0], threshold_range[1])
-    return np.mean((np.array(y_true) - np.array(y_pred)) ** 2)
+      y_bound = np.array(threshold_range)[y_true]
+      baseline = np.mean((np.array(y_true) - np.array(y_bound)) ** 2)
+      return score - baseline
+    return score
 
 def brier_curve(y_true, y_pred, label=None, threshold_range=None):
     """
