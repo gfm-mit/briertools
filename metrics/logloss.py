@@ -48,7 +48,7 @@ def get_logit_ticks(min_val, max_val):
         
     return ticks
 
-def log_loss_curve(y_true, y_pred, label=None, threshold_range=None):
+def log_loss_curve(y_true, y_pred, label=None, threshold_range=None, fill_range=None, ticks=None):
     """
     Calculates the Brier score for different thresholds.
 
@@ -74,21 +74,38 @@ def log_loss_curve(y_true, y_pred, label=None, threshold_range=None):
     idx = np.argsort(y_pred)
     insertion_indices = np.searchsorted(y_pred[idx], expit)
     false_neg = np.cumsum(y_true[idx])[insertion_indices]
-    false_neg[-1] = np.sum(1-y_true[idx])
+    if threshold_range is None:
+      false_neg[-1] = np.sum(1-y_true[idx])
     true_neg = insertion_indices - false_neg
-    true_neg[-1] = np.sum(y_true[idx])
+    if threshold_range is None:
+      true_neg[-1] = np.sum(y_true[idx])
     false_pos = np.sum(y_true[idx]) - true_neg
     costs = expit * false_pos + (1 - expit) * false_neg
     costs /= y_true.shape[0]
-    plt.plot(zscore, costs, label=label)
+
+    color = plt.plot(zscore, costs, label=label)[0].get_color()
     plt.plot(zscore, np.minimum(expit, 1-expit), color="lightgray", linestyle="--", zorder=-10)
-    ticks = [0.01, 0.1, 0.5, 0.9, 0.99]
-    if threshold_range is not None:
+
+    if fill_range is not None:
+      low, high = scipy.special.logit(fill_range)
+      #print(low, high)
+      fill_idx = (low < zscore) & (zscore < high)
+      #print(fill_idx)
+      plt.fill_between(zscore[fill_idx], costs[fill_idx], costs[fill_idx] * 0, color=color, alpha=0.2)
+
+    if ticks is not None:
+      tick_labels = np.round(np.where(np.array(ticks) <= 0.5, 1. / np.array(ticks) - 1, 1 - 1. / (1-np.array(ticks))))
+      print(tick_labels)
+      tick_labels = [f"1:{t:.0f}" if t >= 0 else f"{-t:.0f}:1" for t in tick_labels]
+    elif threshold_range is not None:
       ticks = get_logit_ticks(threshold_range[0], threshold_range[1])
-    plt.xticks(scipy.special.logit(ticks), ticks)
+      tick_labels = ticks
+    else:
+      ticks = [0.01, 0.1, 0.5, 0.9, 0.99]
+      tick_labels = ticks
+    plt.xticks(scipy.special.logit(ticks), tick_labels)
     plt.xlabel("C/L")
     plt.ylabel("Regret")
     plt.title("Brier Curve (Log Loss Version)")
-    plt.show()
 
 log_loss_scorer = make_scorer(log_loss, greater_is_better=True)
