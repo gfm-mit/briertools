@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from briertools.logloss import log_loss_curve
+from ..briertools.logloss import log_loss_curve
 
 def jail():
   pos = np.random.normal(loc=0, scale=1, size=300)

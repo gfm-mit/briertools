@@ -1,3 +1,4 @@
-from briertools.brier import brier_score, brier_score_scorer
+from .briertools.brier import brier_score
+from .briertools.logloss import log_loss
 
-__all__ = ['brier_score', 'brier_score_scorer']
+__all__ = ['brier_score', 'log_loss']

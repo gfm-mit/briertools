@@ -1,6 +1,6 @@
 import unittest
-from briertools.brier import brier_score
-from briertools.logloss import log_loss
+from ..briertools.brier import brier_score
+from ..briertools.logloss import log_loss
 
 class TestCustomMetric(unittest.TestCase):
     def test_brier_score(self):
