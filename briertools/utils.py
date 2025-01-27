@@ -28,12 +28,16 @@ def assert_valid(y_true, y_pred):
   assert np.max(y_pred) < 1
 
 def get_regret(y_true, y_pred, thresholds):
+    if not isinstance(y_true, np.ndarray):
+      y_true = np.array(y_true)
+    if not isinstance(y_pred, np.ndarray):
+      y_pred = np.array(y_pred)
+
     idx = np.argsort(y_pred)
     insertion_indices = np.searchsorted(y_pred[idx], thresholds)
-    sums = np.concatenate([[0], np.cumsum(y_true[idx])])
-    false_neg = sums[insertion_indices]
-    true_neg = insertion_indices - false_neg
-    false_pos = np.sum(y_true[idx]) - true_neg
+    false_neg = np.concatenate([[0], np.cumsum(y_true[idx])])[insertion_indices]
+    false_pos = np.sum(1-y_true[idx]) - np.concatenate([[0], np.cumsum(1-y_true[idx])])[insertion_indices]
+
     costs = thresholds * false_pos + (1 - thresholds) * false_neg
     costs /= y_true.shape[0]
     return costs
