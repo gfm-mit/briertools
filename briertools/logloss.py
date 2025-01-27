@@ -48,7 +48,7 @@ def get_logit_ticks(min_val, max_val):
         
     return ticks
 
-def log_loss_curve(y_true, y_pred, label=None, threshold_range=None, fill_range=None, ticks=None):
+def log_loss_curve(y_true, y_pred, label=None, threshold_range=None, fill_range=None, ticks=None, hatch="/////"):
     """
     Calculates the Brier score for different thresholds.
 
@@ -84,19 +84,29 @@ def log_loss_curve(y_true, y_pred, label=None, threshold_range=None, fill_range=
     costs /= y_true.shape[0]
 
     color = plt.plot(zscore, costs, label=label)[0].get_color()
-    plt.plot(zscore, np.minimum(expit, 1-expit), color="lightgray", linestyle="--", zorder=-10)
+    #plt.plot(zscore, np.minimum(expit, 1-expit), color="lightgray", linestyle="--", zorder=-10)
 
     if fill_range is not None:
       low, high = scipy.special.logit(fill_range)
       #print(low, high)
       fill_idx = (low < zscore) & (zscore < high)
       #print(fill_idx)
-      plt.fill_between(zscore[fill_idx], costs[fill_idx], costs[fill_idx] * 0, color=color, alpha=0.2)
+      plt.fill_between(
+         zscore[fill_idx], costs[fill_idx], costs[fill_idx] * 0,
+         color=color, alpha=0.3)
 
     if ticks is not None:
       tick_labels = np.round(np.where(np.array(ticks) <= 0.5, 1. / np.array(ticks) - 1, 1 - 1. / (1-np.array(ticks))))
-      print(tick_labels)
-      tick_labels = [f"1:{t:.0f}" if t >= 0 else f"{-t:.0f}:1" for t in tick_labels]
+      def format_tick(tick):
+        if tick == 0.5:
+          return "(1:1)\nAccuracy"
+        if tick > 0.5:
+          odds = 1. / (1-tick) - 1
+          return f"{odds:.0f}:1"
+        else:
+          odds = 1. / tick - 1
+          return f"1:{odds:.0f}"
+      tick_labels = map(format_tick, ticks)
     elif threshold_range is not None:
       ticks = get_logit_ticks(threshold_range[0], threshold_range[1])
       tick_labels = ticks

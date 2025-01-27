@@ -63,7 +63,7 @@ def brier_curve(y_true, y_pred, label=None, threshold_range=None):
     costs = thresholds * false_pos + (1 - thresholds) * false_neg
     costs /= y_true.shape[0]
     plt.plot(thresholds, costs, label=label)
-    plt.plot(thresholds, np.minimum(thresholds, 1-thresholds), color="lightgray", linestyle="--", zorder=-10)
+    #plt.plot(thresholds, np.minimum(thresholds, 1-thresholds), color="lightgray", linestyle="--", zorder=-10)
     plt.xlabel("C/L")
     plt.ylabel("Regret")
     plt.title("Brier Curve")
