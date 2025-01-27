@@ -21,11 +21,19 @@ def log_loss(y_true, y_pred, threshold_range=None):
     - score: float
       The computed metric.
     """
-    score = np.mean(np.log(1 - np.abs(np.array(y_true) - np.array(y_pred))))
+    assert np.min(y_true) >= 0
+    assert np.min(y_pred) > 0
+    assert np.max(y_true) <= 1
+    assert np.max(y_pred) < 1
+    score = np.mean(-np.log(1 - np.abs(np.array(y_true) - np.array(y_pred))))
     if threshold_range is not None:
-      y_bound = np.array(threshold_range)[y_true]
-      baseline = np.mean(np.log(1 - np.abs(np.array(y_true) - np.array(y_bound))))
-      return score - baseline
+      # TODO: handle infinities more gracefully
+      y_near = np.array(threshold_range)[np.array(y_true, dtype=int)]
+      y_far = np.array(threshold_range)[np.array(1-y_true, dtype=int)]
+      y_clip = np.clip(y_pred, y_near, y_far)
+      near_score = np.mean(-np.log(1 - np.abs(np.array(y_true) - np.array(y_clip))))
+      far_score = np.mean(-np.log(1 - np.abs(np.array(y_true) - np.array(y_near))))
+      return near_score - far_score
     return score
 
 def get_logit_ticks(min_val, max_val):
@@ -48,23 +56,24 @@ def get_logit_ticks(min_val, max_val):
         
     return ticks
 
-def log_loss_curve(y_true, y_pred, label=None, threshold_range=None, fill_range=None, ticks=None, hatch="/////"):
+def log_loss_curve(y_true, y_pred, threshold_range=None, fill_range=None, ticks=None, hatch="/////"):
     """
-    Calculates the Brier score for different thresholds.
+      Plots the Brier score curve for different thresholds.
 
-    Parameters:
-    - y_true: array-like of shape (n_samples,)
-      Ground truth (correct) labels.
-    - y_pred: array-like of shape (n_samples,)
-      Predicted labels, as returned by a classifier.
-    - threshold_range: tuple of floats, optional
-      The range to clip the true values to.
+      ----------
+      y_true : array-like of shape (n_samples,)
+      y_pred : array-like of shape (n_samples,)
+      threshold_range : tuple of floats, optional
+        The range to clip the true values to. Default is [0.01, 0.99].
+      fill_range : tuple of floats, optional
+        Range to fill under the curve.
+      ticks : array-like, optional
+        Custom ticks for the x-axis.
+      hatch : str, optional
+        Hatch pattern for the fill. Default is "/////".
 
-    Returns:
-    - thresholds: array of floats
-      The thresholds used to calculate the Brier score.
-    - brier_scores: array of floats
-      The Brier scores for each threshold.
+      -------
+      None
     """
     assert plt is not None, "matplotlib is required to plot the Brier curve"
     if threshold_range is None:
@@ -83,7 +92,8 @@ def log_loss_curve(y_true, y_pred, label=None, threshold_range=None, fill_range=
     costs = expit * false_pos + (1 - expit) * false_neg
     costs /= y_true.shape[0]
 
-    color = plt.plot(zscore, costs, label=label)[0].get_color()
+    loss = log_loss(y_true, scipy.special.expit(y_pred), threshold_range=threshold_range)
+    color = plt.plot(zscore, costs, label=f"{loss:.3g}")[0].get_color()
     #plt.plot(zscore, np.minimum(expit, 1-expit), color="lightgray", linestyle="--", zorder=-10)
 
     if fill_range is not None:
