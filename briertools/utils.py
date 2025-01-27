@@ -11,7 +11,7 @@ def l1_to_total_l2_loss(l1_loss):
 
 def clip_loss(y_true, y_pred, threshold_range):
   y_near = np.array(threshold_range)[np.array(y_true, dtype=int)]
-  y_far = np.array(threshold_range)[np.array(1-y_true, dtype=int)]
+  y_far = np.array(threshold_range)[1-np.array(y_true, dtype=int)]
 
   loss_near = pointwise_l1_loss(y_true, y_near)
   loss_far = pointwise_l1_loss(y_true, y_far)
@@ -26,3 +26,14 @@ def assert_valid(y_true, y_pred):
   assert np.min(y_pred) > 0
   assert np.max(y_true) <= 1
   assert np.max(y_pred) < 1
+
+def get_regret(y_true, y_pred, thresholds):
+    idx = np.argsort(y_pred)
+    insertion_indices = np.searchsorted(y_pred[idx], thresholds)
+    sums = np.concatenate([[0], np.cumsum(y_true[idx])])
+    false_neg = sums[insertion_indices]
+    true_neg = insertion_indices - false_neg
+    false_pos = np.sum(y_true[idx]) - true_neg
+    costs = thresholds * false_pos + (1 - thresholds) * false_neg
+    costs /= y_true.shape[0]
+    return costs

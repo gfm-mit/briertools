@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.metrics import make_scorer
 
-from briertools.utils import assert_valid, clip_loss, pointwise_l1_loss, l1_to_total_l2_loss
+from .utils import assert_valid, clip_loss, get_regret, pointwise_l1_loss, l1_to_total_l2_loss
 try:
     import matplotlib.pyplot as plt
 except ImportError:
@@ -52,17 +52,7 @@ def brier_curve(y_true, y_pred, threshold_range=None, fill_range=None, ticks=Non
     if threshold_range is None:
         threshold_range = (0, 1)
     thresholds = np.linspace(*threshold_range, 100)
-    idx = np.argsort(y_pred)
-    insertion_indices = np.searchsorted(y_pred[idx], thresholds)
-    false_neg = np.cumsum(y_true[idx])[insertion_indices]
-    if threshold_range is None:
-      false_neg[-1] = np.sum(1-y_true[idx])
-    true_neg = insertion_indices - false_neg
-    if threshold_range is None:
-      true_neg[-1] = np.sum(y_true[idx])
-    false_pos = np.sum(y_true[idx]) - true_neg
-    costs = thresholds * false_pos + (1 - thresholds) * false_neg
-    costs /= y_true.shape[0]
+    costs = get_regret(y_true, y_pred, thresholds)
 
     loss = brier_score(y_true, y_pred, threshold_range)
     integral = np.trapz(costs, thresholds) * 2
