@@ -23,6 +23,7 @@ def draw_curve(y_true, y_pred, **kwargs):
   return log_loss_curve(y_true, y_pred, **kwargs)
 
 def jail():
+  plt.figure(figsize=(4,2))
   y_pred, y_true = simulate_binormal(1, 2, scale_neg=2)
   draw_curve(y_true, y_pred, draw_range=(0.003, 0.55), fill_range=(1./101, 1./6), ticks=[1./101, 1./6, 1./2])
 
@@ -34,10 +35,11 @@ def jail():
   plt.show()
 
 def fraud():
-  y_pred, y_true = simulate_binormal(1, 1)
+  plt.figure(figsize=(4,2))
+  y_pred, y_true = simulate_binormal(1, 1.5)
   draw_curve(y_true, y_pred, draw_range=(0.333, 0.9995), fill_range=(100./101, 1000./1001), ticks=[1./2, 100./101, 1000./1001])
 
-  y_pred, y_true = simulate_binormal(1, 2)
+  y_pred, y_true = simulate_binormal(1, 5)
   draw_curve(y_true, y_pred, draw_range=(0.333, 0.9995), fill_range=(100./101, 1000./1001), ticks=[1./2, 100./101, 1000./1001])
 
   plt.legend()
@@ -45,6 +47,7 @@ def fraud():
   plt.show()
 
 def cancer():
+  plt.figure(figsize=(4,2))
   y_pred, y_true = simulate_binormal(1, 1, scale_neg=2)
   draw_curve(y_true, y_pred, draw_range=(0.03, 0.66), fill_range=(1./11, 1./3), ticks=[1./11, 1./3, 1./2])
 
@@ -61,7 +64,7 @@ def weights():
   one = x * 0 + 1
   beta00 = one/x/(1-x)/40
   lower = np.minimum(one, beta00)
-  fig, axs = plt.subplots(2, 1, figsize=(4, 6))
+  fig, axs = plt.subplots(1, 2, figsize=(8, 3))
   plt.sca(axs[0])
 
   color1 = plt.plot(x, one, label="Brier Score")[0].get_color()
