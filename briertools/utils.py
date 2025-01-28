@@ -44,7 +44,7 @@ def get_regret(y_true, y_pred, thresholds):
     return costs
 
 def partition_loss(y_true, y_pred, loss_fn, thresholds=None):
-  print("thresholds", thresholds)
+  assert np.cov(y_pred, y_true)[0,1] > 0, "y_pred and y_true must be positively correlated"
   loss = loss_fn(y_true, y_pred, thresholds)
   ir = IsotonicRegression()
   y_pred_iso = ir.fit_transform(y_pred, y_true)
