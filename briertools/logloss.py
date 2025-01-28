@@ -1,5 +1,5 @@
 import numpy as np
-from .utils import assert_valid, clip_loss, pointwise_l1_loss, l1_to_total_log_loss
+from .utils import assert_valid, clip_loss, get_regret, pointwise_l1_loss, l1_to_total_log_loss
 import scipy
 from sklearn.metrics import make_scorer
 try:
@@ -71,27 +71,14 @@ def log_loss_curve(y_true, y_pred, threshold_range=None, fill_range=None, ticks=
     """
     assert plt is not None, "matplotlib is required to plot the Brier curve"
     if threshold_range is None:
-        threshold_range = [0.01, 0.99]
+        threshold_range = [0.001, 0.999]
     zscore = np.linspace(*scipy.special.logit(threshold_range), 1000)
     expit = scipy.special.expit(zscore)
+    costs = get_regret(y_true, y_pred, expit)
 
-    idx = np.argsort(y_pred)
-    insertion_indices = np.searchsorted(y_pred[idx], expit)
-    false_neg = np.cumsum(y_true[idx])[insertion_indices]
-    if threshold_range is None:
-      false_neg[-1] = np.sum(1-y_true[idx])
-    true_neg = insertion_indices - false_neg
-    if threshold_range is None:
-      true_neg[-1] = np.sum(y_true[idx])
-    false_pos = np.sum(y_true[idx]) - true_neg
-    costs = expit * false_pos + (1 - expit) * false_neg
-    costs /= y_true.shape[0]
-
-    loss = log_loss(y_true, scipy.special.expit(y_pred), threshold_range=threshold_range)
-    loss2 = np.trapezoid(costs, zscore) / 2
-    avg = np.trapezoid(costs, zscore) / (zscore[-1] - zscore[0])
-    print(avg, zscore[-1] - zscore[0])
-    color = plt.plot(zscore, costs, label=f"{loss:.3g} vs {loss2:.3g} vs {avg:.3g}")[0].get_color()
+    loss = log_loss(y_true, y_pred, threshold_range=threshold_range)
+    loss2 = np.trapezoid(costs, zscore)
+    color = plt.plot(zscore, costs, label=f"{loss:.3g} vs {loss2:.3g}")[0].get_color()
     #plt.plot(zscore, np.minimum(expit, 1-expit), color="lightgray", linestyle="--", zorder=-10)
 
     if fill_range is not None:
@@ -121,7 +108,7 @@ def log_loss_curve(y_true, y_pred, threshold_range=None, fill_range=None, ticks=
     else:
       ticks = [0.01, 0.1, 0.5, 0.9, 0.99]
       tick_labels = ticks
-    #plt.xticks(scipy.special.logit(ticks), tick_labels)
+    plt.xticks(scipy.special.logit(ticks), tick_labels)
     plt.xlabel("C/L")
     plt.ylabel("Regret")
     plt.title("Brier Curve (Log Loss Version)")
