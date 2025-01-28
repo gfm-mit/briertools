@@ -4,35 +4,38 @@ import scipy
 from briertools.logloss import log_loss_curve
 from briertools.brier import brier_curve
 
-def simulate_binormal(loc, scale=1, n=300):
-  pos = np.random.normal(loc=0, scale=1, size=300)
-  neg = np.random.normal(loc=loc, scale=scale, size=300)
+def simulate_binormal(loc, scale=1, scale_neg=1, n=3000):
+  pos = np.random.normal(loc=-loc, scale=scale_neg, size=n)
+  neg = np.random.normal(loc=loc, scale=scale, size=n)
   y_pred = scipy.special.expit(np.concatenate([pos, neg]))
   y_true = np.concatenate([pos * 0 + 1, neg * 0])
+
   return y_pred, y_true
 
 def draw_curve(y_true, y_pred, **kwargs):
-  return brier_curve(y_true, y_pred, **kwargs)
+  return log_loss_curve(y_true, y_pred, **kwargs)
 
 def jail():
+  y_pred, y_true = simulate_binormal(1, 2, scale_neg=2)
+  draw_curve(y_true, y_pred, threshold_range=(0.003, 0.55), fill_range=(1./101, 1./6), ticks=[1./101, 1./6, 1./2])
+
   y_pred, y_true = simulate_binormal(1, 1)
-  draw_curve(y_true, y_pred, threshold_range=(0.003, 0.66), fill_range=(1./101, 1./6), ticks=[1./101, 1./6, 1./2])
+  draw_curve(y_true, y_pred, threshold_range=(0.003, 0.55), fill_range=(1./101, 1./6), ticks=[1./101, 1./6, 1./2])
 
-  y_pred, y_true = simulate_binormal(3, 1)
-  draw_curve(y_true, y_pred, threshold_range=(0.003, 0.66), fill_range=(1./101, 1./6), ticks=[1./101, 1./6, 1./2])
-
-  plt.show()
+  plt.legend()
   plt.tight_layout()
+  plt.show()
 
 def fraud():
   y_pred, y_true = simulate_binormal(1, 1)
   draw_curve(y_true, y_pred, threshold_range=(0.333, 0.9995), fill_range=(100./101, 1000./1001), ticks=[1./2, 100./101, 1000./1001])
 
-  y_pred, y_true = simulate_binormal(1, 2)
+  y_pred, y_true = simulate_binormal(1, 2, scale_neg=2)
   draw_curve(y_true, y_pred, threshold_range=(0.333, 0.9995), fill_range=(100./101, 1000./1001), ticks=[1./2, 100./101, 1000./1001])
 
-  plt.show()
+  plt.legend()
   plt.tight_layout()
+  plt.show()
 
 def cancer():
   y_pred, y_true = simulate_binormal(1, 1, n=3000)
@@ -42,8 +45,8 @@ def cancer():
   draw_curve(y_true, y_pred, threshold_range=(0.03, 0.66), fill_range=(1./11, 1./3), ticks=[1./11, 1./3, 1./2])
 
   plt.legend()
-  plt.show()
   plt.tight_layout()
+  plt.show()
 
 def weights():
   z = np.linspace(-5, 5, 100)
@@ -89,5 +92,7 @@ def weights():
   plt.tight_layout()
   plt.show()
 
-cancer()
+jail()
+#cancer()
+#fraud()
 #weights()
