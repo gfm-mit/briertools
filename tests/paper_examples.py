@@ -3,7 +3,7 @@ import numpy as np
 import scipy
 from briertools.logloss import log_loss_curve, log_loss
 from briertools.brier import brier_curve
-from sklearn.metrics import roc_auc_score, roc_curve
+from sklearn.metrics import average_precision_score, roc_auc_score, roc_curve, precision_recall_curve
 
 from briertools.utils import partition_loss
 
@@ -23,16 +23,16 @@ def draw_curve(y_true, y_pred, **kwargs):
   return log_loss_curve(y_true, y_pred, **kwargs)
 
 def roc():
-  y_pred, y_true = simulate_binormal(1, 1, fix=False)
-  fig, axs = plt.subplots(3, 1, figsize=(4, 6))
+  y_pred, y_true = simulate_binormal(.8, 1, fix=False, n=300)
+  fig, axs = plt.subplots(1, 3, figsize=(7, 2.5))
   plt.sca(axs[0])
-  draw_curve(y_true, y_pred, ticks=[1./11, 1./3, 1./2])
+  draw_curve(y_true, y_pred, ticks=[1./101, 1./2])
   plt.sca(axs[1])
-  fpr, tpr, _ = roc_curve(y_true, y_pred)
-  auc = 1-roc_auc_score(y_true, y_pred)
-  plt.plot(fpr, tpr, label=f"AUC: {auc:.2f}")
-  plt.xlabel('FPR')
-  plt.ylabel('TPR')
+  precision, recall, _ = precision_recall_curve(y_true, y_pred)
+  auc = average_precision_score(y_true, y_pred)
+  plt.plot(recall, precision, label=f"{auc:.2f}")
+  plt.xlabel('Recall')
+  plt.ylabel('Precision')
 
   plt.sca(axs[2])
   calibration_loss, discrimination_loss = partition_loss(y_true, y_pred, log_loss)
@@ -40,15 +40,15 @@ def roc():
   plt.xlabel("Calibration Loss")
   plt.ylabel("Discrimination Loss")
 
-  y_pred, y_true = simulate_binormal(3, .5, loc_neg=1, fix=False)
+  y_pred, y_true = simulate_binormal(3, .5, loc_neg=1, fix=False, n=300)
   plt.sca(axs[0])
-  draw_curve(y_true, y_pred, ticks=[1./11, 1./3, 1./2])
+  draw_curve(y_true, y_pred, ticks=[1./101, 1./2])
   plt.sca(axs[1])
-  fpr, tpr, _ = roc_curve(y_true, y_pred)
-  auc = 1-roc_auc_score(y_true, y_pred)
-  plt.plot(fpr, tpr, label=f"AUC: {auc:.2f}")
-  plt.xlabel('FPR')
-  plt.ylabel('TPR')
+  precision, recall, _ = precision_recall_curve(y_true, y_pred)
+  auc = average_precision_score(y_true, y_pred)
+  plt.plot(recall, precision, label=f"{auc:.2f}")
+  plt.xlabel('Recall')
+  plt.ylabel('Precision')
 
   plt.sca(axs[2])
   calibration_loss, discrimination_loss = partition_loss(y_true, y_pred, log_loss)
@@ -59,9 +59,11 @@ def roc():
   plt.title("Log Loss")
   plt.sca(axs[1])
   plt.legend()
-  plt.title("ROC")
+  plt.title("AUC-PR")
   plt.sca(axs[2])
-  plt.title("Decomposition")
+  plt.title("Log Loss\nDecomposition")
+  plt.xlim([0, .55])
+  plt.ylim([0, .55])
   plt.tight_layout()
   plt.show()
 
