@@ -78,7 +78,8 @@ def log_loss_curve(y_true, y_pred, threshold_range=None, fill_range=None, ticks=
 
     loss = log_loss(y_true, y_pred, threshold_range=threshold_range)
     loss2 = np.trapezoid(costs, zscore)
-    color = plt.plot(zscore, costs, label=f"{loss:.3g} vs {loss2:.3g}")[0].get_color()
+    assert np.abs(loss - loss2) < 1e-3
+    color = plt.plot(zscore, costs, label=f"{loss:.3g}")[0].get_color()
     #plt.plot(zscore, np.minimum(expit, 1-expit), color="lightgray", linestyle="--", zorder=-10)
 
     if fill_range is not None:
@@ -109,8 +110,9 @@ def log_loss_curve(y_true, y_pred, threshold_range=None, fill_range=None, ticks=
       ticks = [0.01, 0.1, 0.5, 0.9, 0.99]
       tick_labels = ticks
     plt.xticks(scipy.special.logit(ticks), tick_labels)
-    plt.xlabel("C/L")
-    plt.ylabel("Regret")
+    plt.xlabel("C/L (as C:L-C odds)")
+    plt.ylabel("Regret (lower is better)")
+    #plt.yscale('log')
     plt.title("Brier Curve (Log Loss Version)")
 
 log_loss_scorer = make_scorer(log_loss, greater_is_better=True)
