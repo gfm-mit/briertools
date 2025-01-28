@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.isotonic import IsotonicRegression
 
 def pointwise_l1_loss(y_true, y_pred):
   return np.abs(np.array(y_true) - np.array(y_pred))
@@ -23,9 +24,9 @@ def clip_loss(y_true, y_pred, threshold_range):
 
 def assert_valid(y_true, y_pred):
   assert np.min(y_true) >= 0
-  assert np.min(y_pred) > 0
+  assert np.min(y_pred) >= 0
   assert np.max(y_true) <= 1
-  assert np.max(y_pred) < 1
+  assert np.max(y_pred) <= 1
 
 def get_regret(y_true, y_pred, thresholds):
     if not isinstance(y_true, np.ndarray):
@@ -41,3 +42,12 @@ def get_regret(y_true, y_pred, thresholds):
     costs = thresholds * false_pos + (1 - thresholds) * false_neg
     costs /= y_true.shape[0]
     return costs
+
+def partition_loss(y_true, y_pred, loss_fn, thresholds=None):
+  print("thresholds", thresholds)
+  loss = loss_fn(y_true, y_pred, thresholds)
+  ir = IsotonicRegression()
+  y_pred_iso = ir.fit_transform(y_pred, y_true)
+  discrimination_loss = loss_fn(y_true, y_pred_iso, thresholds)
+  calibration_loss = loss - discrimination_loss
+  return calibration_loss, discrimination_loss
