@@ -1,4 +1,5 @@
 import numpy as np
+from .utils import assert_valid, clip_loss, pointwise_l1_loss, l1_to_total_log_loss
 import scipy
 from sklearn.metrics import make_scorer
 try:
@@ -21,20 +22,13 @@ def log_loss(y_true, y_pred, threshold_range=None):
     - score: float
       The computed metric.
     """
-    assert np.min(y_true) >= 0
-    assert np.min(y_pred) > 0
-    assert np.max(y_true) <= 1
-    assert np.max(y_pred) < 1
-    score = np.mean(-np.log(1 - np.abs(np.array(y_true) - np.array(y_pred))))
-    if threshold_range is not None:
-      # TODO: handle infinities more gracefully
-      y_near = np.array(threshold_range)[np.array(y_true, dtype=int)]
-      y_far = np.array(threshold_range)[np.array(1-y_true, dtype=int)]
-      y_clip = np.clip(y_pred, y_near, y_far)
-      near_score = np.mean(-np.log(1 - np.abs(np.array(y_true) - np.array(y_clip))))
-      far_score = np.mean(-np.log(1 - np.abs(np.array(y_true) - np.array(y_near))))
-      return near_score - far_score
-    return score
+    assert_valid(y_true, y_pred)
+    if threshold_range is None:
+      return l1_to_total_log_loss(pointwise_l1_loss(y_true, y_pred))
+    loss_near, loss_clip = clip_loss(y_true, y_pred, threshold_range)
+    near_score = l1_to_total_log_loss(loss_near)
+    far_score = l1_to_total_log_loss(loss_clip)
+    return far_score - near_score
 
 def get_logit_ticks(min_val, max_val):
     """Generate tick marks for logit-scaled plots using append/prepend operations."""
@@ -78,8 +72,9 @@ def log_loss_curve(y_true, y_pred, threshold_range=None, fill_range=None, ticks=
     assert plt is not None, "matplotlib is required to plot the Brier curve"
     if threshold_range is None:
         threshold_range = [0.01, 0.99]
-    zscore = np.linspace(*scipy.special.logit(threshold_range), 100)
+    zscore = np.linspace(*scipy.special.logit(threshold_range), 1000)
     expit = scipy.special.expit(zscore)
+
     idx = np.argsort(y_pred)
     insertion_indices = np.searchsorted(y_pred[idx], expit)
     false_neg = np.cumsum(y_true[idx])[insertion_indices]
@@ -93,7 +88,10 @@ def log_loss_curve(y_true, y_pred, threshold_range=None, fill_range=None, ticks=
     costs /= y_true.shape[0]
 
     loss = log_loss(y_true, scipy.special.expit(y_pred), threshold_range=threshold_range)
-    color = plt.plot(zscore, costs, label=f"{loss:.3g}")[0].get_color()
+    loss2 = np.trapezoid(costs, zscore) / 2
+    avg = np.trapezoid(costs, zscore) / (zscore[-1] - zscore[0])
+    print(avg, zscore[-1] - zscore[0])
+    color = plt.plot(zscore, costs, label=f"{loss:.3g} vs {loss2:.3g} vs {avg:.3g}")[0].get_color()
     #plt.plot(zscore, np.minimum(expit, 1-expit), color="lightgray", linestyle="--", zorder=-10)
 
     if fill_range is not None:
@@ -123,7 +121,7 @@ def log_loss_curve(y_true, y_pred, threshold_range=None, fill_range=None, ticks=
     else:
       ticks = [0.01, 0.1, 0.5, 0.9, 0.99]
       tick_labels = ticks
-    plt.xticks(scipy.special.logit(ticks), tick_labels)
+    #plt.xticks(scipy.special.logit(ticks), tick_labels)
     plt.xlabel("C/L")
     plt.ylabel("Regret")
     plt.title("Brier Curve (Log Loss Version)")
