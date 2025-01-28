@@ -4,8 +4,10 @@ import scipy
 from briertools.logloss import log_loss_curve
 from briertools.brier import brier_curve
 
-def simulate_binormal(loc, scale=1, scale_neg=1, n=3000):
-  pos = np.random.normal(loc=-loc, scale=scale_neg, size=n)
+def simulate_binormal(loc, scale=1, scale_neg=1, loc_neg=None, n=3000):
+  if loc_neg is None:
+    loc_neg = -loc
+  pos = np.random.normal(loc=loc_neg, scale=scale_neg, size=n)
   neg = np.random.normal(loc=loc, scale=scale, size=n)
   y_pred = scipy.special.expit(np.concatenate([pos, neg]))
   y_true = np.concatenate([pos * 0 + 1, neg * 0])
@@ -30,7 +32,7 @@ def fraud():
   y_pred, y_true = simulate_binormal(1, 1)
   draw_curve(y_true, y_pred, threshold_range=(0.333, 0.9995), fill_range=(100./101, 1000./1001), ticks=[1./2, 100./101, 1000./1001])
 
-  y_pred, y_true = simulate_binormal(1, 2, scale_neg=2)
+  y_pred, y_true = simulate_binormal(1, 2)
   draw_curve(y_true, y_pred, threshold_range=(0.333, 0.9995), fill_range=(100./101, 1000./1001), ticks=[1./2, 100./101, 1000./1001])
 
   plt.legend()
@@ -38,10 +40,10 @@ def fraud():
   plt.show()
 
 def cancer():
-  y_pred, y_true = simulate_binormal(1, 1, n=3000)
+  y_pred, y_true = simulate_binormal(1, 1, scale_neg=2)
   draw_curve(y_true, y_pred, threshold_range=(0.03, 0.66), fill_range=(1./11, 1./3), ticks=[1./11, 1./3, 1./2])
 
-  y_pred, y_true = simulate_binormal(2, 1, n=3000)
+  y_pred, y_true = simulate_binormal(1, 1)
   draw_curve(y_true, y_pred, threshold_range=(0.03, 0.66), fill_range=(1./11, 1./3), ticks=[1./11, 1./3, 1./2])
 
   plt.legend()
@@ -92,7 +94,49 @@ def weights():
   plt.tight_layout()
   plt.show()
 
-jail()
+def get_roc(y_true, y_pred):
+    if not isinstance(y_true, np.ndarray):
+      y_true = np.array(y_true)
+    if not isinstance(y_pred, np.ndarray):
+      y_pred = np.array(y_pred)
+
+    idx = np.argsort(y_pred)
+    true_pos = 1 - np.cumsum(y_true[idx]) / np.sum(y_true)
+    false_pos = 1 - np.cumsum(1-y_true[idx]) / np.sum(1-y_true)
+
+    return true_pos, false_pos
+
+def roc():
+  y_pred, y_true = simulate_binormal(-1, .5, scale_neg=.4, loc_neg=-2)
+  fig, axs = plt.subplots(2, 1, figsize=(4, 6))
+  plt.sca(axs[0])
+  draw_curve(y_true, y_pred, threshold_range=(0.03, 0.66), fill_range=(1./11, 1./3), ticks=[1./11, 1./3, 1./2])
+  plt.sca(axs[1])
+  fpr, tpr = get_roc(y_true, y_pred)
+  auc = -np.trapezoid(tpr, fpr)
+  plt.plot(fpr, tpr, label=f"AUC: {auc:.2f}")
+  plt.xlabel('FPR')
+  plt.ylabel('TPR')
+
+  plt.sca(axs[0])
+  y_pred, y_true = simulate_binormal(.5, 1)
+  draw_curve(y_true, y_pred, threshold_range=(0.03, 0.66), fill_range=(1./11, 1./3), ticks=[1./11, 1./3, 1./2])
+  plt.sca(axs[1])
+  fpr, tpr = get_roc(y_true, y_pred)
+  auc = -np.trapezoid(tpr, fpr)
+  plt.plot(fpr, tpr, label=f"AUC: {auc:.2f}")
+  plt.xlabel('FPR')
+  plt.ylabel('TPR')
+
+  plt.sca(axs[0])
+  plt.legend()
+  plt.sca(axs[1])
+  plt.legend()
+  plt.tight_layout()
+  plt.show()
+
+#jail()
 #cancer()
 #fraud()
 #weights()
+roc()
