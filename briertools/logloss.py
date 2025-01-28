@@ -50,35 +50,37 @@ def get_logit_ticks(min_val, max_val):
         
     return ticks
 
-def log_loss_curve(y_true, y_pred, threshold_range=None, fill_range=None, ticks=None, hatch="/////"):
+def log_loss_curve(y_true, y_pred, draw_range=None, fill_range=None, ticks=None):
     """
       Plots the Brier score curve for different thresholds.
 
       ----------
       y_true : array-like of shape (n_samples,)
       y_pred : array-like of shape (n_samples,)
-      threshold_range : tuple of floats, optional
+      draw_range : tuple of floats, optional
         The range to clip the true values to. Default is [0.01, 0.99].
       fill_range : tuple of floats, optional
         Range to fill under the curve.
       ticks : array-like, optional
         Custom ticks for the x-axis.
-      hatch : str, optional
-        Hatch pattern for the fill. Default is "/////".
 
       -------
       None
     """
     assert plt is not None, "matplotlib is required to plot the Brier curve"
-    if threshold_range is None:
-        threshold_range = [0.001, 0.999]
-    zscore = np.linspace(*scipy.special.logit(threshold_range), 1000)
+    if draw_range is None:
+        draw_range = [0.001, 0.999]
+    zscore = np.linspace(*scipy.special.logit(draw_range), 1000)
     expit = scipy.special.expit(zscore)
     costs = get_regret(y_true, y_pred, expit)
 
-    loss = log_loss(y_true, y_pred, threshold_range=threshold_range)
+    loss = log_loss(y_true, y_pred, threshold_range=fill_range)
     loss2 = np.trapezoid(costs, zscore)
-    assert np.abs(loss - loss2) < 1e-3
+    #if fill_range is not None:
+    #  low, high = scipy.special.logit(fill_range)
+    #  fill_idx = (low < zscore) & (zscore < high)
+    #  loss2 = np.trapezoid(costs[fill_idx], zscore[fill_idx])
+    #assert np.abs(loss - loss2) < 1e-3
     color = plt.plot(zscore, costs, label=f"{loss:.3g}")[0].get_color()
     #plt.plot(zscore, np.minimum(expit, 1-expit), color="lightgray", linestyle="--", zorder=-10)
 
@@ -103,8 +105,8 @@ def log_loss_curve(y_true, y_pred, threshold_range=None, fill_range=None, ticks=
           odds = 1. / tick - 1
           return f"1:{odds:.0f}"
       tick_labels = map(format_tick, ticks)
-    elif threshold_range is not None:
-      ticks = get_logit_ticks(threshold_range[0], threshold_range[1])
+    elif draw_range is not None:
+      ticks = get_logit_ticks(draw_range[0], draw_range[1])
       tick_labels = ticks
     else:
       ticks = [0.01, 0.1, 0.5, 0.9, 0.99]

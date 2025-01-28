@@ -1,8 +1,11 @@
 from matplotlib import pyplot as plt
 import numpy as np
 import scipy
-from briertools.logloss import log_loss_curve
+from briertools.logloss import log_loss_curve, log_loss
 from briertools.brier import brier_curve
+from sklearn.metrics import roc_auc_score
+
+from briertools.utils import partition_loss
 
 def simulate_binormal(loc, scale=1, scale_neg=1, loc_neg=None, n=3000):
   if loc_neg is None:
@@ -19,10 +22,10 @@ def draw_curve(y_true, y_pred, **kwargs):
 
 def jail():
   y_pred, y_true = simulate_binormal(1, 2, scale_neg=2)
-  draw_curve(y_true, y_pred, threshold_range=(0.003, 0.55), fill_range=(1./101, 1./6), ticks=[1./101, 1./6, 1./2])
+  draw_curve(y_true, y_pred, draw_range=(0.003, 0.55), fill_range=(1./101, 1./6), ticks=[1./101, 1./6, 1./2])
 
   y_pred, y_true = simulate_binormal(1, 1)
-  draw_curve(y_true, y_pred, threshold_range=(0.003, 0.55), fill_range=(1./101, 1./6), ticks=[1./101, 1./6, 1./2])
+  draw_curve(y_true, y_pred, draw_range=(0.003, 0.55), fill_range=(1./101, 1./6), ticks=[1./101, 1./6, 1./2])
 
   plt.legend()
   plt.tight_layout()
@@ -30,10 +33,10 @@ def jail():
 
 def fraud():
   y_pred, y_true = simulate_binormal(1, 1)
-  draw_curve(y_true, y_pred, threshold_range=(0.333, 0.9995), fill_range=(100./101, 1000./1001), ticks=[1./2, 100./101, 1000./1001])
+  draw_curve(y_true, y_pred, draw_range=(0.333, 0.9995), fill_range=(100./101, 1000./1001), ticks=[1./2, 100./101, 1000./1001])
 
   y_pred, y_true = simulate_binormal(1, 2)
-  draw_curve(y_true, y_pred, threshold_range=(0.333, 0.9995), fill_range=(100./101, 1000./1001), ticks=[1./2, 100./101, 1000./1001])
+  draw_curve(y_true, y_pred, draw_range=(0.333, 0.9995), fill_range=(100./101, 1000./1001), ticks=[1./2, 100./101, 1000./1001])
 
   plt.legend()
   plt.tight_layout()
@@ -41,10 +44,10 @@ def fraud():
 
 def cancer():
   y_pred, y_true = simulate_binormal(1, 1, scale_neg=2)
-  draw_curve(y_true, y_pred, threshold_range=(0.03, 0.66), fill_range=(1./11, 1./3), ticks=[1./11, 1./3, 1./2])
+  draw_curve(y_true, y_pred, draw_range=(0.03, 0.66), fill_range=(1./11, 1./3), ticks=[1./11, 1./3, 1./2])
 
   y_pred, y_true = simulate_binormal(1, 1)
-  draw_curve(y_true, y_pred, threshold_range=(0.03, 0.66), fill_range=(1./11, 1./3), ticks=[1./11, 1./3, 1./2])
+  draw_curve(y_true, y_pred, draw_range=(0.03, 0.66), fill_range=(1./11, 1./3), ticks=[1./11, 1./3, 1./2])
 
   plt.legend()
   plt.tight_layout()
@@ -95,38 +98,43 @@ def weights():
   plt.show()
 
 def get_roc(y_true, y_pred):
-    if not isinstance(y_true, np.ndarray):
-      y_true = np.array(y_true)
-    if not isinstance(y_pred, np.ndarray):
-      y_pred = np.array(y_pred)
-
     idx = np.argsort(y_pred)
-    true_pos = 1 - np.cumsum(y_true[idx]) / np.sum(y_true)
+    true_pos =  - np.cumsum(y_true[idx]) / np.sum(y_true)
     false_pos = 1 - np.cumsum(1-y_true[idx]) / np.sum(1-y_true)
 
     return true_pos, false_pos
 
 def roc():
   y_pred, y_true = simulate_binormal(-1, .5, scale_neg=.4, loc_neg=-2)
-  fig, axs = plt.subplots(2, 1, figsize=(4, 6))
+  fig, axs = plt.subplots(4, 1, figsize=(4, 6))
   plt.sca(axs[0])
-  draw_curve(y_true, y_pred, threshold_range=(0.03, 0.66), fill_range=(1./11, 1./3), ticks=[1./11, 1./3, 1./2])
+  draw_curve(y_true, y_pred, ticks=[1./11, 1./3, 1./2])
   plt.sca(axs[1])
   fpr, tpr = get_roc(y_true, y_pred)
-  auc = -np.trapezoid(tpr, fpr)
+  auc = 1-roc_auc_score(y_true, y_pred)
   plt.plot(fpr, tpr, label=f"AUC: {auc:.2f}")
   plt.xlabel('FPR')
   plt.ylabel('TPR')
 
+  plt.sca(axs[2])
+  calibration_loss, discrimination_loss = partition_loss(y_true, y_pred, log_loss, thresholds=(1e-2, 1-1e-2))
+  plt.scatter(calibration_loss, discrimination_loss)
+  plt.xlabel("Calibration Loss")
+  plt.ylabel("Discrimination Loss")
+
   plt.sca(axs[0])
-  y_pred, y_true = simulate_binormal(.5, 1)
-  draw_curve(y_true, y_pred, threshold_range=(0.03, 0.66), fill_range=(1./11, 1./3), ticks=[1./11, 1./3, 1./2])
+  y_pred, y_true = simulate_binormal(.5, 1.5)
+  draw_curve(y_true, y_pred, ticks=[1./11, 1./3, 1./2])
   plt.sca(axs[1])
   fpr, tpr = get_roc(y_true, y_pred)
-  auc = -np.trapezoid(tpr, fpr)
+  auc = 1-roc_auc_score(y_true, y_pred)
   plt.plot(fpr, tpr, label=f"AUC: {auc:.2f}")
   plt.xlabel('FPR')
   plt.ylabel('TPR')
+
+  plt.sca(axs[2])
+  calibration_loss, discrimination_loss = partition_loss(y_true, y_pred, log_loss, thresholds=(1e-2, 1-1e-2))
+  plt.scatter(calibration_loss, discrimination_loss)
 
   plt.sca(axs[0])
   plt.legend()
