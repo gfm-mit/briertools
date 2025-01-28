@@ -101,7 +101,7 @@ def weights():
 
 def roc():
   y_pred, y_true = simulate_binormal(1, 1, fix=False)
-  fig, axs = plt.subplots(4, 1, figsize=(4, 6))
+  fig, axs = plt.subplots(3, 1, figsize=(4, 6))
   plt.sca(axs[0])
   draw_curve(y_true, y_pred, ticks=[1./11, 1./3, 1./2])
   plt.sca(axs[1])
@@ -133,8 +133,12 @@ def roc():
 
   plt.sca(axs[0])
   plt.legend()
+  plt.title("Log Loss")
   plt.sca(axs[1])
   plt.legend()
+  plt.title("ROC")
+  plt.sca(axs[2])
+  plt.title("Decomposition")
   plt.tight_layout()
   plt.show()
 
