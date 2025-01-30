@@ -67,8 +67,4 @@ def roc():
   plt.tight_layout()
   plt.show()
 
-#jail()
-#cancer()
-#fraud()
-#weights()
 roc()
