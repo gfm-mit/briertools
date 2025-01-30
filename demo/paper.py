@@ -33,10 +33,10 @@ def jail():
 def fraud():
   plt.figure(figsize=(4,2))
   y_pred, y_true = simulate_binormal(1, 1.5)
-  draw_curve(y_true, y_pred, draw_range=(0.333, 0.9995), fill_range=(100./101, 1000./1001), ticks=[1./2, 100./101, 1000./1001])
+  draw_curve(y_true, y_pred, draw_range=(0.333, 0.995), fill_range=(.925, .983), ticks=[1./2, 10./11, 100./101])
 
   y_pred, y_true = simulate_binormal(1, 5)
-  draw_curve(y_true, y_pred, draw_range=(0.333, 0.9995), fill_range=(100./101, 1000./1001), ticks=[1./2, 100./101, 1000./1001])
+  draw_curve(y_true, y_pred, draw_range=(0.333, 0.995), fill_range=(.925, .983), ticks=[1./2, 10./11, 100./101])
 
   plt.legend()
   plt.tight_layout()
@@ -44,7 +44,7 @@ def fraud():
 
 def cancer():
   plt.figure(figsize=(4,2))
-  y_pred, y_true = simulate_binormal(1, 1, scale_neg=2)
+  y_pred, y_true = simulate_binormal(1, 1, scale_neg=8)
   draw_curve(y_true, y_pred, draw_range=(0.03, 0.66), fill_range=(1./11, 1./3), ticks=[1./11, 1./3, 1./2])
 
   y_pred, y_true = simulate_binormal(1, 1)
