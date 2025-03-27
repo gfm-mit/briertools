@@ -53,7 +53,7 @@ def weights_hand():
   one = x * 0 + 1
   beta00 = one/x/(1-x)/40
   beta22 = 6 * x * (1-x)
-  beta28 = beta.pdf(x, 2, 8)
+  beta28 = beta.pdf(x, 2, 8) / 10
   shifted = 6/(6 * x + 1 * (1-x))**2
   lower = np.minimum(one, beta00)
   fig, axs = plt.subplots(1, 2, figsize=(8, 3))
@@ -80,11 +80,12 @@ def weights_hand():
   w = x * (1-x)
   one = w
   beta00 = x * 0 + .1
+  beta39 = beta.pdf(x, 3, 9) / 10
   lower = np.minimum(one, beta00)
   plt.plot(z, one, color=color1, label="Brier")
   plt.plot(z, beta00, color=color2, label="Log Loss")
   plt.plot(z, beta22 * w, color=color3, label="Hand")
-  plt.plot(z, beta28 * w, color=color4, label="Zhu")
+  plt.plot(z, beta39, color=color4, label="Zhu")
   plt.plot(z, shifted * w, color=color5, label="Shifted Brier")
   plt.axvline(scipy.special.logit(1/7), color="black", alpha=0.1)
   plt.axvline(scipy.special.logit(1/5), color="black", alpha=0.1)
