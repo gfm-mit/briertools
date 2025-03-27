@@ -2,9 +2,8 @@ from matplotlib import pyplot as plt
 import numpy as np
 import scipy
 from briertools.logloss import log_loss_curve, log_loss
-from briertools.brier import brier_curve
+from briertools.dca import dca_curve
 from sklearn.metrics import average_precision_score, roc_auc_score, roc_curve, precision_recall_curve
-
 from briertools.utils import partition_loss
 import demo.formatter
 
@@ -71,16 +70,22 @@ def roc():
 def dca():
   y_hat_0, y_0 = simulate_binormal(.8, 1, fix=False, n=300)
   y_hat_1, y_1 = simulate_binormal(3, .5, loc_neg=1, fix=False, n=300)
-  fig, axs = plt.subplots(1, 3, figsize=(7, 2.5))
-  demo.formatter.scale_x_one_minus_log_x(axs[0])
+  fig, axs = plt.subplots(1, 3, figsize=(7, 2.5), sharey=True)
+  axs[0].set_xscale('log')
   demo.formatter.scale_x_one_minus_one_minus_x_2(axs[2])
   for ax in axs:
     plt.sca(ax)
-    brier_curve(y_0, y_hat_0, ticks=[1./101, 1./2], threshold_range=[1e-2,1-1e-2])
-    brier_curve(y_1, y_hat_1, ticks=[1./101, 1./2], threshold_range=[1e-2,1-1e-2])
+    dca_curve(y_0, y_hat_0, ticks=[1./101, 1./2], threshold_range=[1e-2,1-1e-2])
+    dca_curve(y_1, y_hat_1, ticks=[1./101, 1./2], threshold_range=[1e-2,1-1e-2])
     plt.xlim([1e-2, 1-1e-2])
     plt.xticks([.1, .25, .5, .75], r"$\frac{1}{10}$ $\frac{1}{4}$ $\frac{1}{2}$ $\frac{3}{4}$".split())
-    #plt.legend()
+    plt.xticks([.01, .02, .03,.04,.05,.06,.07,.08,.09,.1, .2, .3, .4, .5, .6, .7, .8, .9], minor=True)
+  axs[1].set_ylabel("")
+  axs[2].set_ylabel("")
+  axs[0].set_title("Log")
+  axs[1].set_title("Original")
+  axs[2].set_title("Quadratic")
+  plt.suptitle("Decision Curve Rescalings")
   plt.tight_layout()
   plt.show()
 
