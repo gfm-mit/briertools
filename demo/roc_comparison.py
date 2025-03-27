@@ -6,6 +6,7 @@ from briertools.brier import brier_curve
 from sklearn.metrics import average_precision_score, roc_auc_score, roc_curve, precision_recall_curve
 
 from briertools.utils import partition_loss
+import demo.formatter
 
 def simulate_binormal(loc, scale=1, scale_neg=1, loc_neg=None, n=3000, fix=True):
   if loc_neg is None:
@@ -67,4 +68,21 @@ def roc():
   plt.tight_layout()
   plt.show()
 
-roc()
+def dca():
+  y_hat_0, y_0 = simulate_binormal(.8, 1, fix=False, n=300)
+  y_hat_1, y_1 = simulate_binormal(3, .5, loc_neg=1, fix=False, n=300)
+  fig, axs = plt.subplots(1, 3, figsize=(7, 2.5))
+  for ax in axs:
+    plt.sca(ax)
+    brier_curve(y_0, y_hat_0, ticks=[1./101, 1./2], threshold_range=[1e-3,1-1e-3])
+    brier_curve(y_1, y_hat_1, ticks=[1./101, 1./2], threshold_range=[1e-3,1-1e-3])
+    plt.legend()
+  plt.sca(axs[0])
+  plt.xscale('ln1minusx')
+  plt.sca(axs[2])
+  plt.xscale('1minusx2')
+  plt.tight_layout()
+  plt.show()
+
+if __name__ == "__main__":
+  dca()
