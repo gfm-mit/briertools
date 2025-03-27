@@ -1,42 +1,20 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.scale import ScaleBase
-from matplotlib.transforms import Transform
-from matplotlib.ticker import FuncFormatter
+from matplotlib.scale import FuncScale
 
-# Define custom transform
-class Ln1MinusXTransform(Transform):
-    input_dims = 1
-    output_dims = 1
-    is_separable = True
-    
-    def transform_non_affine(self, a):
-        return np.log(1 - a)
-    
-    def inverted(self):
-        return InvertedLn1MinusXTransform()
+def scale_x_one_minus_log_x(ax):
+  def forward(x):
+      return np.log(x)
+  def inverse(y):
+      return np.exp(y)
+  ax.set_xscale(FuncScale(ax.xaxis, (forward, inverse)))
+  ax.set_title("log(x)")
 
-class InvertedLn1MinusXTransform(Transform):
-    input_dims = 1
-    output_dims = 1
-    is_separable = True
-    
-    def transform_non_affine(self, a):
-        return 1 - np.exp(a)
-    
-    def inverted(self):
-        return Ln1MinusXTransform()
-
-# Define custom scale
-class Ln1MinusXScale(ScaleBase):
-    name = 'ln1minusx'
-    
-    def get_transform(self):
-        return Ln1MinusXTransform()
-    
-    def set_default_locators_and_formatters(self, axis):
-        axis.set_major_formatter(FuncFormatter(lambda x, pos: f"{x:.2f}"))
-
-# Register the scale
-import matplotlib.scale as mscale
-mscale.register_scale(Ln1MinusXScale)
+def scale_x_one_minus_one_minus_x_2(ax):
+  def forward(x):
+    return 1 - (1 - x)**2  # This is the actual transformation for labels
+  def inverse(y):
+    one_minus = 1 - y
+    return 1 - np.sign(one_minus) * np.sqrt(np.abs(one_minus))
+  ax.set_xscale(FuncScale(ax.xaxis, (forward, inverse)))
+  ax.set_title("1-(1-x)^2")
