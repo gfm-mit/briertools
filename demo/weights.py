@@ -54,6 +54,7 @@ def weights_hand():
   beta00 = one/x/(1-x)/40
   beta22 = 6 * x * (1-x)
   beta28 = beta.pdf(x, 2, 8)
+  shifted = 6/(6 * x + 1 * (1-x))**2
   lower = np.minimum(one, beta00)
   fig, axs = plt.subplots(1, 2, figsize=(8, 3))
   plt.sca(axs[0])
@@ -62,7 +63,8 @@ def weights_hand():
   color2 = plt.plot(x, beta00, label="Beta(0,0)\n(limit)")[0].get_color()
   color3 = plt.plot(x, beta22, label="Beta(2,2)")[0].get_color()
   color4 = plt.plot(x, beta28, label="Beta(2,8)")[0].get_color()
-  color5 = plt.plot(scipy.special.expit(z-1.95), beta00, label="Shifted Brier")[0].get_color()
+  color5 = plt.plot(x, shifted, label="Shifted Brier")[0].get_color()
+  plt.axvline(1/8, color="black", alpha=0.1)
   plt.fill_between(x, one, lower, color=color1, alpha=0.2, zorder=-10)
   plt.fill_between(x, beta00, lower, color=color2, alpha=0.2, zorder=-10)
   plt.fill_between(x, one * 0, lower, color="black", alpha=0.1, zorder=-10)
@@ -83,7 +85,9 @@ def weights_hand():
   plt.plot(z, beta00, color=color2, label="Log Loss")
   plt.plot(z, beta22 * w, color=color3, label="Hand")
   plt.plot(z, beta28 * w, color=color4, label="Zhu")
-  plt.plot(z-1.95, w, color=color5, label="Shifted Brier")
+  plt.plot(z, shifted * w, color=color5, label="Shifted Brier")
+  plt.axvline(scipy.special.logit(1/7), color="black", alpha=0.1)
+  plt.axvline(scipy.special.logit(1/5), color="black", alpha=0.1)
   plt.fill_between(z, one, lower, color=color1, alpha=0.2, zorder=-10)
   plt.fill_between(z, beta00, lower, color=color2, alpha=0.2, zorder=-10)
   plt.fill_between(z, one * 0, lower, color="black", alpha=0.1, zorder=-10)
