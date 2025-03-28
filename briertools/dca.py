@@ -55,10 +55,9 @@ def dca_curve(y_true, y_pred, threshold_range=None, fill_range=None, ticks=None)
     costs = get_regret(y_true, y_pred, thresholds)
 
     loss = dca_score(y_true, y_pred, threshold_range)
-    integral = np.trapz(costs, thresholds) * 2
 
     pi = np.mean(y_true)
-    color = plt.plot(thresholds, pi - costs / (1 - thresholds), label=f"MSE: {loss:.2f} | $\mathbb{{E}}$ R(f): {integral:.2f}")[0].get_color()
+    color = plt.plot(thresholds, pi - costs / (1 - thresholds), label=f"Net Benefit: {loss:.2f}")[0].get_color()
     if fill_range:
       plt.fill_between(thresholds, pi - costs / (1 - thresholds), pi, color=color, alpha=fill_range, zorder=-10)
     plt.xlabel("C/L")
