@@ -81,7 +81,7 @@ def log_loss_curve(y_true, y_pred, draw_range=None, fill_range=None, ticks=None)
     #  fill_idx = (low < zscore) & (zscore < high)
     #  loss2 = np.trapezoid(costs[fill_idx], zscore[fill_idx])
     #assert np.abs(loss - loss2) < 1e-3
-    color = plt.plot(zscore, costs, label=f"{loss:.3g}")[0].get_color()
+    color = plt.plot(zscore, costs, label=f"LL: {loss:.3g}")[0].get_color()
     #plt.plot(zscore, np.minimum(expit, 1-expit), color="lightgray", linestyle="--", zorder=-10)
 
     if fill_range is not None:
