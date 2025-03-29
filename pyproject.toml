@@ -12,3 +12,6 @@ dependencies = [
     "matplotlib",
     "scipy"
 ]
+
+[tool.setuptools]
+packages = ["briertools"]
