@@ -377,7 +377,7 @@ class MetricScorer(object):
                 fill_x, fill_y_low, fill_y_high, color=color, **fill_kwargs
             )
         if self.special_xticks:
-            ticks, tick_labels = self._get_xtick_labels(ticks)
+            ticks, tick_labels = self._get_xtick_labels(ticks, threshold_range)
             plt.xticks(ticks, tick_labels)
 
         plt.ylabel(self.ylabel)
@@ -522,6 +522,7 @@ class LogLossScorer(MetricScorer):
     xlabel = "C/L (as C:L-C odds)"
     ylabel = "Regret (lower is better)"
     title = "Brier Curve (Log Loss Version)"
+    special_xticks = True
 
     def _make_x_and_y_curves(
         self,
