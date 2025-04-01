@@ -10,7 +10,9 @@ dependencies = [
     "numpy",
     "scikit-learn",
     "matplotlib",
-    "scipy"
+    "scipy",
+    "matplotcheck",
+    "pandas",
 ]
 
 [tool.setuptools]
