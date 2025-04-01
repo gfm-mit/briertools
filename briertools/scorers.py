@@ -1,3 +1,4 @@
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import scipy
@@ -12,6 +13,7 @@ class MetricScorer(object):
 
     default_threshold_range = None
     special_xticks = False
+    n_points = 1000
 
     def __init__(self):
         """
@@ -57,8 +59,8 @@ class MetricScorer(object):
         ----------
         """
         self._assert_valid(y_true, y_pred)
-
-        return np.abs(np.array(y_true) - np.array(y_pred))
+        subtracted = np.array(y_true) - np.array(y_pred)
+        return np.abs(subtracted)
 
     def _l1_to_total_log_loss(self, l1_loss: list[float]) -> float:
         """
@@ -165,6 +167,7 @@ class MetricScorer(object):
         loss = loss_fn(y_true, y_pred, thresholds)
         ir = IsotonicRegression()
         y_pred_iso = ir.fit_transform(y_pred, y_true)
+        print(y_pred_iso, 'y pred iso')
         discrimination_loss = loss_fn(y_true, y_pred_iso, thresholds)
         calibration_loss = loss - discrimination_loss
 
@@ -205,7 +208,6 @@ class MetricScorer(object):
 
         costs = thresholds * false_pos + (1 - thresholds) * false_neg
         costs /= y_true.shape[0]
-
         return costs
 
     def _make_x_and_y_curves(
@@ -240,7 +242,7 @@ class MetricScorer(object):
         raise NotImplementedError("This needs to be implemented for a child class!")
 
     def _plot_curve_and_get_colors(
-        self, x_to_plot: list[float], y_to_plot: list[float], label: str
+        self, ax: matplotlib.axes, x_to_plot: list[float], y_to_plot: list[float], label: str,
     ) -> list:
         """
         Plot the curve described by x_to_plot and y_to_plot.
@@ -248,6 +250,8 @@ class MetricScorer(object):
         Return a list of the colors used to plot.
         ----------
         Parameters:
+        - ax: matploltlib.axes object
+          onto which the curve will be plotted
         - x_to_plot: array-like of shape (n_samples,)
           x-values of the points in the plot.
         - y_to_plot: array-like of shape (n_samples,)
@@ -259,7 +263,7 @@ class MetricScorer(object):
         - colors: iterable of the color used to plot x_to_plot and y_to_plot
         ----------
         """
-        return plt.plot(x_to_plot, y_to_plot, label=label)[0].get_color()
+        return ax.plot(x_to_plot, y_to_plot, label=label)[0].get_color()
 
     def _get_fill_between_params(
         self,
@@ -326,6 +330,7 @@ class MetricScorer(object):
 
     def plot_curve(
         self,
+        ax: matplotlib.axes,
         y_true: list[float],
         y_pred: list[float],
         threshold_range: tuple[float, float] = None,
@@ -338,6 +343,8 @@ class MetricScorer(object):
         with y_true as the ground truth.
         ----------
         Parameters:
+        - ax: matploltlib.axes object
+          onto which the curve will be plotted
         - y_true: array-like of shape (n_samples,)
           Ground truth (correct) labels.
         - y_pred: array-like of shape (n_samples,)
@@ -363,7 +370,7 @@ class MetricScorer(object):
             threshold_range,
             fill_range=fill_range,
         )
-        color = self._plot_curve_and_get_colors(x_to_plot, y_to_plot, label)
+        color = self._plot_curve_and_get_colors(ax, x_to_plot, y_to_plot, label)
         if fill_range:
             (
                 fill_x,
@@ -373,17 +380,17 @@ class MetricScorer(object):
             ) = self._get_fill_between_params(
                 y_true, y_pred, threshold_range, alpha, fill_range=fill_range
             )
-            plt.fill_between(
+            ax.fill_between(
                 fill_x, fill_y_low, fill_y_high, color=color, **fill_kwargs
             )
         if self.special_xticks:
             ticks, tick_labels = self._get_xtick_labels(ticks, threshold_range)
-            plt.xticks(ticks, tick_labels)
+            ax.set_xticks(ticks, tick_labels)
 
-        plt.ylabel(self.ylabel)
-        plt.xlabel(self.xlabel)
-        plt.title(self.title)
-        plt.legend()
+        ax.set_ylabel(self.ylabel)
+        ax.set_xlabel(self.xlabel)
+        ax.set_title(self.title)
+        ax.legend()
         plt.tight_layout()
 
 
@@ -427,7 +434,7 @@ class DCAScorer(MetricScorer):
           label for the curve to be plotted (used in building a legend)
         -------
         """
-        thresholds = np.linspace(*threshold_range, 100)
+        thresholds = np.linspace(*threshold_range, self.n_points)
         costs = self._get_regret(y_true, y_pred, thresholds)
         loss = self.score(y_true, y_pred, threshold_range)
         pi = np.mean(y_true)
@@ -468,7 +475,7 @@ class DCAScorer(MetricScorer):
         - fill_kwargs: dict of {'alpha': alpha, 'zorder': -10}.
         ----------
         """
-        thresholds = np.linspace(*threshold_range, 100)
+        thresholds = np.linspace(*threshold_range, self.n_points)
         costs = self._get_regret(y_true, y_pred, thresholds)
         pi = np.mean(y_true)
 
@@ -553,7 +560,7 @@ class LogLossScorer(MetricScorer):
           label for the curve to be plotted (used in building a legend)
         -------
         """
-        zscore = np.linspace(*scipy.special.logit(threshold_range), 1000)
+        zscore = np.linspace(*scipy.special.logit(threshold_range), self.n_points)
         expit = scipy.special.expit(zscore)
         costs = self._get_regret(y_true, y_pred, expit)
         loss = self.score(y_true, y_pred, threshold_range=fill_range)
@@ -594,7 +601,7 @@ class LogLossScorer(MetricScorer):
         ----------
         """
         low, high = scipy.special.logit(fill_range)
-        zscore = np.linspace(*scipy.special.logit(threshold_range), 1000)
+        zscore = np.linspace(*scipy.special.logit(threshold_range), self.n_points)
         expit = scipy.special.expit(zscore)
         costs = self._get_regret(y_true, y_pred, expit)
         fill_idx = (low < zscore) & (zscore < high)
@@ -720,7 +727,10 @@ class BrierScorer(MetricScorer):
     Brier scorer object
     """
     default_threshold_range = (0, 1)
-    special_xticks = False
+    special_xticks = True
+    title = "Brier Curve"
+    ylabel = "Regret (lower is better)"
+    xlabel = "C/L\n(Linear Scale)"
 
     def _make_x_and_y_curves(
         self,
@@ -749,18 +759,112 @@ class BrierScorer(MetricScorer):
           y-values of the curve to be plotted
         - label: string
           label for the curve to be plotted (used in building a legend)
+        - n_points: integer >= 0.
+          The number of points to plot over.
         -------
         """
-        thresholds = np.linspace(*threshold_range, 100)
+        thresholds = np.linspace(*threshold_range, self.n_points)
         costs = self._get_regret(y_true, y_pred, thresholds)
-
-        loss = self.score(y_true, y_pred, threshold_range)
-        integral = np.trapz(costs, thresholds) * 2
+        loss = self.score(y_true, y_pred, threshold_range=fill_range)
+        integral = np.trapezoid(costs, thresholds) * 2
         return (
             thresholds,
             costs,
             f"MSE: {loss:.2f} | $\mathbb{{E}}$ R(f): {integral:.2f}",
         )
+
+    def _get_fill_between_params(
+        self,
+        y_true: list[int],
+        y_pred: list[float],
+        threshold_range: tuple[float, float],
+        alpha: float,
+        fill_range: tuple[float] = (0.001, 0.999),
+    ):
+        """
+        Provides the values necessary to feed to plt.fill_between
+        ----------
+        Parameters:
+        - y_true: array-like of shape (n_samples,)
+          Ground truth (correct) labels.
+        - y_pred: array-like of shape (n_samples,)
+          Predicted labels, as returned by a classifier.
+        - threshold_range: strictly increasing tuple of two floats in range [0, 1].
+          The range of thresholds to be considered when scoring.
+        - alpha: float.
+          the transparency of the filled-in sections.
+        - fill_range: strictly increasing tuple of two floats in range [0, 1]; optional & defaults to (0.001, 0.999).
+          The range in which the plot will be filled in.
+
+        Returns:
+        - fill_x: array-like of shape (1000,)
+          For each value across the range of thresholds at which the scores are computed,
+          this provides the threshold value.
+        - fill_y_low: array-like of shape (1000,)
+          For each threshold value, this is the lower bound of the filled-in area.
+        - fill_y_high: array-like of shape (1000,)
+          For each threshold value, this is the upper bound of the filled-in area.
+        - fill_kwargs: dict of {'alpha': 0.3}.
+        ----------
+        """
+        low, high = fill_range
+        thresholds = np.linspace(*threshold_range, self.n_points)
+        costs = self._get_regret(y_true, y_pred, thresholds)
+        loss = self.score(y_true, y_pred, threshold_range)
+        fill_idx = (low < thresholds) & (thresholds < high)
+        fill_kwargs = {'alpha': 0.3}
+        return thresholds[fill_idx], costs[fill_idx], costs[fill_idx] * 0, fill_kwargs
+
+    def _get_xtick_labels(self, ticks, threshold_range):
+        """
+        Helper function to get xticks for Brier plots
+
+        ----------
+        Parameters:
+        - ticks: iterable of floats in the range [0, 1]. Optional.
+          These values will be used as the xticks for the final plot.
+        - threshold_range: strictly increasing tuple of floats in the range [0, 1]. Optional.
+          Indicates the range of thresholds we're dealing with for our plot.
+
+        Returns:
+        - final_ticks: iterable of floats in range [0, 1]
+          where the ticks go
+        - tick_labels: iterable of strings
+          xtick labels for the plot
+        ----------
+        """
+        if ticks is not None:
+            tick_labels = np.round(
+                np.where(
+                    np.array(ticks) <= 0.5,
+                    1.0 / np.array(ticks) - 1,
+                    1 - 1.0 / (1 - np.array(ticks)),
+                )
+            )
+
+            def format_tick(tick):
+                """
+                Format ticks to produce human-readable odds ratios.
+                """
+                if tick == 0.5:
+                    return "(1:1)\nAccuracy"
+                if tick > 0.5:
+                    odds = 1.0 / (1 - tick) - 1
+                    return f"{odds:.0f}:1"
+                else:
+                    odds = 1.0 / tick - 1
+                    return f"1:{odds:.0f}"
+
+            tick_labels = map(format_tick, ticks)
+
+        elif threshold_range is not None:
+            ticks = np.linspace(threshold_range[0], threshold_range[1], 5)
+            tick_labels = ticks
+        else:
+            ticks = [0.01, 0.1, 0.5, 0.9, 0.99]
+            tick_labels = ticks
+
+        return ticks, tick_labels
 
     def score(
         self,
