@@ -479,7 +479,7 @@ class DCAScorer(MetricScorer):
         - fill_kwargs: dict of {'alpha': alpha, 'zorder': -10}.
         ----------
         """
-        thresholds = np.linspace(*threshold_range, self.n_points)
+        thresholds = np.linspace(*fill_range, self.n_points)
         costs = self._get_regret(y_true, y_pred, thresholds)
         pi = np.mean(y_true)
 
