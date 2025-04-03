@@ -1,61 +1,95 @@
+import argparse
 from matplotlib import pyplot as plt
 import numpy as np
 import scipy
-from briertools.logloss import log_loss_curve, log_loss
-from briertools.dca import dca_curve
+from briertools.scorers import LogLossScorer, BrierScorer, DCAScorer
 from sklearn.metrics import (
-    roc_auc_score,
     roc_auc_score,
     roc_curve,
     precision_recall_curve,
 )
-from briertools.utils import partition_loss
 import demo.formatter
+from assel.simulation import ClinicalPredictionModel, generate_disease_status
 
 
-def simulate_binormal(loc, scale=1, scale_neg=1, loc_neg=None, n=3000, fix=True):
-    if loc_neg is None:
-        loc_neg = -loc
-    neg = np.random.normal(loc=loc_neg, scale=scale_neg, size=n)
-    pos = np.random.normal(loc=loc, scale=scale, size=n)
-    if fix:
-        pos, neg = neg, pos
-    y_pred = scipy.special.expit(np.concatenate([pos, neg]))
-    y_true = np.concatenate([pos * 0 + 1, neg * 0])
-
-    return y_pred, y_true
-
-
-def draw_curve(y_true, y_pred, **kwargs):
-    return log_loss_curve(y_true, y_pred, **kwargs)
+def draw_curve(y_true, y_pred, scorer, **kwargs):
+    """
+    Wrapper function for drawing curves using the new scorer objects.
+    """
+    ax = plt.gca()
+    # Get user label but don't pass it to plot_curve
+    user_label = kwargs.pop('label', None)
+    
+    # Ensure fill_range is a tuple if provided
+    if 'fill_range' in kwargs and not isinstance(kwargs['fill_range'], tuple):
+        fill_value = kwargs['fill_range']
+        kwargs['fill_range'] = (0.01, fill_value)
+    
+    scorer.plot_curve(
+        ax, 
+        y_true, 
+        y_pred,
+        threshold_range=kwargs.get('draw_range'),
+        fill_range=kwargs.get('fill_range'),
+        ticks=kwargs.get('ticks'),
+        alpha=kwargs.get('alpha', 0.3)
+    )
+    
+    # Manually add the legend entry if a label was provided
+    if user_label:
+        handles, labels = ax.get_legend_handles_labels()
+        if handles:
+            handles[-1].set_label(user_label)
+            ax.legend()
+    
+    return ax
 
 
 def roc():
-    y_pred, y_true = simulate_binormal(0.8, 1, fix=False, n=300)
+    # Generate true disease status with 20% prevalence
+    n_patients = 600
+    prevalence = 0.20
+    y_true = generate_disease_status(n_patients=n_patients, prevalence=prevalence)
+    
+    # Use high specificity test model
+    y_pred_high_spec = ClinicalPredictionModel.calibrated_binary(y_true)
+    
+    # Use well calibrated model
+    y_pred_well_calibrated = ClinicalPredictionModel.severe_risk_underestimation_model(y_true)
+    
+    # Create scorers
+    brier_scorer = LogLossScorer()
+    
     fig, axs = plt.subplots(1, 3, figsize=(7, 2.5))
+    
+    # Plot log loss curves
     plt.sca(axs[1])
-    draw_curve(y_true, y_pred, ticks=[1.0 / 101, 1.0 / 2])
+    draw_curve(y_true, y_pred_high_spec, scorer=brier_scorer, ticks=[1.0 / 101, 1.0 / 2], label="High Spec")
+    draw_curve(y_true, y_pred_well_calibrated, scorer=brier_scorer, ticks=[1.0 / 101, 1.0 / 2], label="Well Cal")
+    
+    # Plot ROC curves
     plt.sca(axs[0])
-    fpr, tpr, _ = roc_curve(y_true, y_pred)
-    auc = roc_auc_score(y_true, y_pred)
-    plt.plot(fpr, tpr, label=f"AUC: {auc:.2f}")
+    # High specificity test
+    fpr, tpr, _ = roc_curve(y_true, y_pred_high_spec)
+    auc = roc_auc_score(y_true, y_pred_high_spec)
+    plt.plot(fpr, tpr, label=f"High Spec (AUC: {auc:.2f})")
+    
+    # Well calibrated model
+    fpr, tpr, _ = roc_curve(y_true, y_pred_well_calibrated)
+    auc = roc_auc_score(y_true, y_pred_well_calibrated)
+    plt.plot(fpr, tpr, label=f"Well Cal (AUC: {auc:.2f})")
+    
+    # Plot loss decomposition
     plt.sca(axs[2])
-    calibration_loss, discrimination_loss = partition_loss(y_true, y_pred, log_loss)
-    plt.scatter(calibration_loss, discrimination_loss)
-
-    y_pred, y_true = simulate_binormal(3, 0.5, loc_neg=1, fix=False, n=300)
-    plt.sca(axs[1])
-    draw_curve(y_true, y_pred, ticks=[1.0 / 101, 1.0 / 2])
-    plt.sca(axs[0])
-    fpr, tpr, _ = roc_curve(y_true, y_pred)
-    auc = roc_auc_score(y_true, y_pred)
-    plt.plot(fpr, tpr, label=f"AUC: {auc:.2f}")
-    plt.sca(axs[2])
-    calibration_loss, discrimination_loss = partition_loss(y_true, y_pred, log_loss)
-    plt.scatter(calibration_loss, discrimination_loss)
+    # High specificity test
+    calibration_loss, discrimination_loss = brier_scorer._partition_loss(y_true, y_pred_high_spec, brier_scorer.score)
+    plt.scatter(calibration_loss, discrimination_loss, label="High Spec")
+    
+    # Well calibrated model
+    calibration_loss, discrimination_loss = brier_scorer._partition_loss(y_true, y_pred_well_calibrated, brier_scorer.score)
+    plt.scatter(calibration_loss, discrimination_loss, label="Well Cal")
 
     plt.sca(axs[1])
-    plt.legend()
     plt.title("Log Loss")
     plt.sca(axs[0])
     plt.legend()
@@ -68,6 +102,8 @@ def roc():
     plt.title("Log Loss\nDecomposition")
     plt.xlim([0, 0.55])
     plt.ylim([0, 0.55])
+    for ax in axs:
+        ax.legend(fontsize=8)
 
     plt.suptitle("Comparing AUC-ROC, Log Loss, and Decomposition Plots")
     plt.tight_layout()
@@ -75,58 +111,89 @@ def roc():
 
 
 def dca():
-    y_hat_0, y_0 = simulate_binormal(0.8, 1, fix=False, n=300)
-    y_hat_1, y_1 = simulate_binormal(3, 0.5, loc_neg=1, fix=False, n=300)
+    # Generate true disease status with 20% prevalence
+    n_patients = 600
+    prevalence = 0.20
+    y_true = generate_disease_status(n_patients=n_patients, prevalence=prevalence)
+    
+    # Get predictions from models
+    y_pred_high_spec = ClinicalPredictionModel.high_specificity_test(y_true)
+    y_pred_well_calibrated = ClinicalPredictionModel.severe_risk_underestimation_model(y_true)
+    
+    # Create scorers
+    dca_scorer = DCAScorer()
+    brier_scorer = BrierScorer()
+    log_loss_scorer = LogLossScorer()
+    
     fig, axs = plt.subplots(1, 3, figsize=(7, 2.5), sharey=True)
     axs[2].set_xscale("log")
     demo.formatter.scale_x_one_minus_one_minus_x_2(axs[1])
-    for ax in axs:
-        plt.sca(ax)
-        dca_curve(
-            y_1,
-            y_hat_1,
-            ticks=[1.0 / 101, 1.0 / 2],
-            threshold_range=[1e-2, 1 - 1e-2],
-            fill_range=0.15 if ax != axs[0] else None,
-        )
-        dca_curve(
-            y_0,
-            y_hat_0,
-            ticks=[1.0 / 101, 1.0 / 2],
-            threshold_range=[1e-2, 1 - 1e-2],
-            fill_range=0.4 if ax != axs[0] else None,
-        )
-        if ax != axs[0]:
-            plt.axhline(y=0.5, color="black", linestyle="--", lw=0.5, zorder=-10)
-        plt.xlim([1e-2, 1 - 1e-2])
-        plt.xticks(
-            [0.1, 0.25, 0.5, 0.75],
-            r"$\frac{1}{10}$ $\frac{1}{4}$ $\frac{1}{2}$ $\frac{3}{4}$".split(),
-        )
-        plt.xticks(
-            [
-                0.01,
-                0.02,
-                0.03,
-                0.04,
-                0.05,
-                0.06,
-                0.07,
-                0.08,
-                0.09,
-                0.1,
-                0.2,
-                0.3,
-                0.4,
-                0.5,
-                0.6,
-                0.7,
-                0.8,
-                0.9,
-            ],
-            minor=True,
-        )
-        plt.ylabel("Net Benefit\n(in True Positives)")
+    
+    # Plot original DCA
+    plt.sca(axs[0])
+    draw_curve(
+        y_true,
+        y_pred_well_calibrated,
+        scorer=dca_scorer,
+        ticks=[1.0 / 101, 1.0 / 2],
+        draw_range=[1e-2, 1 - 1e-2],
+        fill_range=(0.01, 0.15),
+        label="Well Calibrated"
+    )
+    draw_curve(
+        y_true,
+        y_pred_high_spec,
+        scorer=dca_scorer,
+        ticks=[1.0 / 101, 1.0 / 2],
+        draw_range=[1e-2, 1 - 1e-2],
+        fill_range=(0.01, 0.15),
+        label="High Specificity"
+    )
+    
+    # Plot Brier Score
+    plt.sca(axs[1])
+    draw_curve(
+        y_true,
+        y_pred_well_calibrated,
+        scorer=brier_scorer,
+        ticks=[1.0 / 101, 1.0 / 2],
+        draw_range=[1e-2, 1 - 1e-2],
+        fill_range=(0.01, 0.15),
+        label="Well Calibrated"
+    )
+    draw_curve(
+        y_true,
+        y_pred_high_spec,
+        scorer=brier_scorer,
+        ticks=[1.0 / 101, 1.0 / 2],
+        draw_range=[1e-2, 1 - 1e-2],
+        fill_range=(0.01, 0.15),
+        label="High Specificity"
+    )
+    plt.axhline(y=0.5, color="black", linestyle="--", lw=0.5, zorder=-10)
+    
+    # Plot Log Loss
+    plt.sca(axs[2])
+    draw_curve(
+        y_true,
+        y_pred_well_calibrated,
+        scorer=brier_scorer,
+        ticks=[1.0 / 101, 1.0 / 2],
+        draw_range=[1e-2, 1 - 1e-2],
+        fill_range=(0.01, 0.15),
+        label="Well Calibrated"
+    )
+    draw_curve(
+        y_true,
+        y_pred_high_spec,
+        scorer=brier_scorer,
+        ticks=[1.0 / 101, 1.0 / 2],
+        draw_range=[1e-2, 1 - 1e-2],
+        fill_range=(0.01, 0.15),
+        label="High Specificity"
+    )
+    plt.axhline(y=0.5, color="black", linestyle="--", lw=0.5, zorder=-10)
+    
     axs[1].set_ylabel("")
     axs[2].set_ylabel("")
     axs[0].set_title("Original")
@@ -139,10 +206,19 @@ def dca():
         [0.01, 0.1, 0.25, 0.5, 0.75],
         r"$\frac{1}{100}$ $\frac{1}{10}$ $\frac{1}{4}$ $\frac{1}{2}$ $\frac{3}{4}$".split(),
     )
+    for ax in axs:
+        ax.legend(fontsize=8)
+    plt.ylim([-.02, .24])
     plt.suptitle("Decision Curve Analysis (with Rescaling)")
     plt.tight_layout()
     plt.show()
 
 
 if __name__ == "__main__":
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--flag", action="store_true")
+  args = parser.parse_args()
+  if args.flag:
     roc()
+  else:
+    dca()

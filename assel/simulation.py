@@ -5,6 +5,7 @@ from typing import Literal, Dict
 ModelType = Literal[
     'high_sensitivity_test',
     'high_specificity_test',
+    'calibrated_binary',
     'well_calibrated',
     'overpredict',
     'underpredict',
@@ -83,11 +84,22 @@ def generate_clinical_predictions(
     prob_underpredict = expit(logit_base + gamma_underpredict)
     prob_severe_underpredict = expit(logit_base + gamma_severe_underpredict)
 
+    # Extra test not in paper: calibrated binary test
+    calibrated_binary_spec = .6
+    calibrated_binary_sens = .6
+    calibrated_binary_result = np.zeros(n_patients, dtype=float)
+    calibrated_binary_result[disease_status == 1] = np.random.binomial(1, calibrated_binary_sens, n_positive)
+    calibrated_binary_result[disease_status == 0] = np.random.binomial(1, 1 - calibrated_binary_spec, n_negative)
+    calibrated_binary_result[calibrated_binary_result == 1] = np.mean(disease_status[calibrated_binary_result == 1])
+    calibrated_binary_result[calibrated_binary_result == 0] = np.mean(disease_status[calibrated_binary_result == 0])
+
     # Select y_pred based on model_type
     if model_type == 'high_sensitivity_test':
         y_pred = high_sens_test_result
     elif model_type == 'high_specificity_test':
         y_pred = high_spec_test_result
+    elif model_type == 'calibrated_binary':
+        y_pred = calibrated_binary_result
     elif model_type == 'well_calibrated':
         y_pred = prob_well_calibrated
     elif model_type == 'overpredict':
@@ -161,6 +173,19 @@ class ClinicalPredictionModel:
         return generate_clinical_predictions(
             disease_status=y_true,
             model_type='high_specificity_test',
+            sens_high_spec_test_target=cls.SENS_HIGH_SPEC_TEST,
+            spec_high_spec_test_target=cls.SPEC_HIGH_SPEC_TEST,
+            seed=cls.SEED
+        )
+    
+    @classmethod
+    def calibrated_binary(cls, y_true: np.ndarray) -> np.ndarray:
+        """
+        Generates predictions for the 'Highly specific' binary test.
+        """
+        return generate_clinical_predictions(
+            disease_status=y_true,
+            model_type='calibrated_binary',
             sens_high_spec_test_target=cls.SENS_HIGH_SPEC_TEST,
             spec_high_spec_test_target=cls.SPEC_HIGH_SPEC_TEST,
             seed=cls.SEED
@@ -272,7 +297,8 @@ class ClinicalPredictionModel:
             'Well calibrated model': cls.well_calibrated_model,
             'Risk overestimation model': cls.risk_overestimation_model,
             'Risk underestimation model': cls.risk_underestimation_model,
-            'Severe risk underestimation model': cls.severe_risk_underestimation_model
+            'Severe risk underestimation model': cls.severe_risk_underestimation_model,
+            'Calibrated binary (not in paper)': cls.calibrated_binary,
         }
     
     @classmethod
