@@ -167,7 +167,6 @@ class MetricScorer(object):
         loss = loss_fn(y_true, y_pred, thresholds)
         ir = IsotonicRegression()
         y_pred_iso = ir.fit_transform(y_pred, y_true)
-        print(y_pred_iso, 'y pred iso')
         discrimination_loss = loss_fn(y_true, y_pred_iso, thresholds)
         calibration_loss = loss - discrimination_loss
 
@@ -337,6 +336,7 @@ class MetricScorer(object):
         fill_range: tuple[float, float] = None,
         ticks: list[float] = None,
         alpha: float = 0.3,
+        label: str = None,
     ) -> None:
         """
         Plots a curve indicating this class's scoring function evaluated on y_pred
@@ -364,12 +364,16 @@ class MetricScorer(object):
         """
         if threshold_range is None:
             threshold_range = self.default_threshold_range
-        x_to_plot, y_to_plot, label = self._make_x_and_y_curves(
+        x_to_plot, y_to_plot, data_label = self._make_x_and_y_curves(
             y_true,
             y_pred,
             threshold_range,
             fill_range=fill_range,
         )
+        if label:
+            label = label + " " + data_label
+        else:
+            label = data_label
         color = self._plot_curve_and_get_colors(ax, x_to_plot, y_to_plot, label)
         if fill_range:
             (
@@ -770,7 +774,7 @@ class BrierScorer(MetricScorer):
         return (
             thresholds,
             costs,
-            f"MSE: {loss:.2f} | $\mathbb{{E}}$ R(f): {integral:.2f}",
+            f"MSE: {loss:.3g} | $\mathbb{{E}}$ R(f): {integral:.3g}",
         )
 
     def _get_fill_between_params(
