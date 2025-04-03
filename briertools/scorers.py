@@ -443,7 +443,7 @@ class DCAScorer(MetricScorer):
         loss = self.score(y_true, y_pred, threshold_range)
         pi = np.mean(y_true)
 
-        return thresholds, pi - costs / (1 - thresholds), f"Net Benefit: {loss:.2f}"
+        return thresholds, pi - costs / (1 - thresholds), f"Net Benefit: {loss:.2g}"
 
     def _get_fill_between_params(
         self,
@@ -568,7 +568,7 @@ class LogLossScorer(MetricScorer):
         expit = scipy.special.expit(zscore)
         costs = self._get_regret(y_true, y_pred, expit)
         loss = self.score(y_true, y_pred, threshold_range=fill_range)
-        return zscore, costs, f"LL: {loss:.3g}"
+        return zscore, costs, f"Log Loss: {loss:.3g}"
 
     def _get_fill_between_params(
         self,
@@ -774,7 +774,7 @@ class BrierScorer(MetricScorer):
         return (
             thresholds,
             costs,
-            f"MSE: {loss:.3g} | $\mathbb{{E}}$ R(f): {integral:.3g}",
+            f"Brier: {loss:.3g}",
         )
 
     def _get_fill_between_params(
