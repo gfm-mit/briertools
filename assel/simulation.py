@@ -85,8 +85,8 @@ def generate_clinical_predictions(
     prob_severe_underpredict = expit(logit_base + gamma_severe_underpredict)
 
     # Extra test not in paper: calibrated binary test
-    calibrated_binary_spec = .6
-    calibrated_binary_sens = .6
+    calibrated_binary_spec = .95
+    calibrated_binary_sens = .5
     calibrated_binary_result = np.zeros(n_patients, dtype=float)
     calibrated_binary_result[disease_status == 1] = np.random.binomial(1, calibrated_binary_sens, n_positive)
     calibrated_binary_result[disease_status == 0] = np.random.binomial(1, 1 - calibrated_binary_spec, n_negative)

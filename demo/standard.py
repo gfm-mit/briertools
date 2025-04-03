@@ -28,7 +28,7 @@ def draw_curve(y_true, y_pred, scorer, **kwargs):
     )
     return ax
 
-def curve_comparison(model1, model2, scorer, title, label1, label2, max_threshold=0.97):
+def curve_comparison(model1, model2, scorer, title, label1, label2, fill_min=1./21, draw_max=0.97):
     """
     Recreate the jail() function using simulation.py for binary vs continuous model comparison.
     This implements the comparison between a continuous prediction model and binary tests
@@ -46,7 +46,7 @@ def curve_comparison(model1, model2, scorer, title, label1, label2, max_threshol
     y_pred_binary = model1(y_true)
     
     ticks = np.array([1.0 / 101, 1.0/21, 1.0 / 6 ,1.0 / 2])
-    ticks = ticks[ticks < max_threshold]
+    ticks = ticks[ticks < draw_max]
     
     # Draw the curve for high sensitivity binary test
     draw_curve(
@@ -54,8 +54,8 @@ def curve_comparison(model1, model2, scorer, title, label1, label2, max_threshol
         y_pred_binary,
         label=label1,
         scorer=scorer,
-        draw_range=(0.003, max_threshold),
-        fill_range=(1.0 / 21, 1.0 / 6),
+        draw_range=(0.003, draw_max),
+        fill_range=(fill_min, 1.0 / 6),
         ticks=ticks
     )
     
@@ -69,37 +69,42 @@ def curve_comparison(model1, model2, scorer, title, label1, label2, max_threshol
         y_pred_continuous,
         label=label2,
         scorer=scorer,
-        draw_range=(0.003, max_threshold),
-        fill_range=(1.0 / 21, 1.0 / 6),
+        draw_range=(0.003, draw_max),
+        fill_range=(fill_min, 1.0 / 6),
         ticks=ticks
     )
     
     plt.title(title)
     plt.legend(fontsize=8)
     plt.tight_layout()
-    plt.show()
+    return plt.gca()
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("--flag", action="store_true")
+  parser.add_argument("--out", type=str)
   args = parser.parse_args()
   if args.flag:
-    curve_comparison(
+    ax = curve_comparison(
         model1=ClinicalPredictionModel.high_sensitivity_test,
         label1="High Sensitivity",
         model2=ClinicalPredictionModel.high_specificity_test,
         label2="High Specificity",
         scorer=LogLossScorer(),
-        title="High Sensitivity vs High Specificity",
-        max_threshold=0.97
+        title="Average Sentencing Performance\nWith Bounded Tradeoffs",
+        fill_min=1./101,
     ) 
   else:
-    curve_comparison(
-        model1=ClinicalPredictionModel.high_specificity_test,
-        label1="High Specificity",
-        model2=ClinicalPredictionModel.well_calibrated_model,
-        label2="Continuous",
+    ax = curve_comparison(
+        model1=ClinicalPredictionModel.well_calibrated_model,
+        label1="Continuous",
+        model2=ClinicalPredictionModel.high_specificity_test,
+        label2="High Specificity",
         scorer=BrierScorer(),
-        title="High Sensitivity vs Continuous",
-        max_threshold=0.25
+        title="Cancer Detection Performance\nUnder Cost Heterogeneity",
+        draw_max=0.25
     ) 
+  if args.out:
+    ax.figure.savefig(args.out)
+  else:
+    ax.figure.show()

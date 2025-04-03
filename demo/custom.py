@@ -51,11 +51,11 @@ def roc():
     prevalence = 0.20
     y_true = generate_disease_status(n_patients=n_patients, prevalence=prevalence)
     
+    # Use severely miscalibrated model
+    y_pred_miscalibrated = ClinicalPredictionModel.severe_risk_underestimation_model(y_true)
+    
     # Use high specificity test model
     y_pred_high_spec = ClinicalPredictionModel.calibrated_binary(y_true)
-    
-    # Use well calibrated model
-    y_pred_well_calibrated = ClinicalPredictionModel.severe_risk_underestimation_model(y_true)
     
     # Create scorers
     brier_scorer = LogLossScorer()
@@ -64,30 +64,32 @@ def roc():
     
     # Plot log loss curves
     plt.sca(axs[1])
+    draw_curve(y_true, y_pred_miscalibrated, scorer=brier_scorer, ticks=[1.0 / 101, 1.0 / 2], label="Sev. Miscal.")
     draw_curve(y_true, y_pred_high_spec, scorer=brier_scorer, ticks=[1.0 / 101, 1.0 / 2], label="High Spec")
-    draw_curve(y_true, y_pred_well_calibrated, scorer=brier_scorer, ticks=[1.0 / 101, 1.0 / 2], label="Well Cal")
     
     # Plot ROC curves
     plt.sca(axs[0])
+    
+    # Severly miscalibrated model
+    fpr, tpr, _ = roc_curve(y_true, y_pred_miscalibrated)
+    auc = roc_auc_score(y_true, y_pred_miscalibrated)
+    plt.plot(fpr, tpr, label=f"Sev. Miscal. (AUC: {auc:.2f})")
+
     # High specificity test
     fpr, tpr, _ = roc_curve(y_true, y_pred_high_spec)
     auc = roc_auc_score(y_true, y_pred_high_spec)
     plt.plot(fpr, tpr, label=f"High Spec (AUC: {auc:.2f})")
     
-    # Well calibrated model
-    fpr, tpr, _ = roc_curve(y_true, y_pred_well_calibrated)
-    auc = roc_auc_score(y_true, y_pred_well_calibrated)
-    plt.plot(fpr, tpr, label=f"Well Cal (AUC: {auc:.2f})")
-    
     # Plot loss decomposition
     plt.sca(axs[2])
+    
+    # Severly miscalibrated model
+    calibration_loss, discrimination_loss = brier_scorer._partition_loss(y_true, y_pred_miscalibrated, brier_scorer.score)
+    plt.scatter(calibration_loss, discrimination_loss, label="Sev Miscal.")
+
     # High specificity test
     calibration_loss, discrimination_loss = brier_scorer._partition_loss(y_true, y_pred_high_spec, brier_scorer.score)
     plt.scatter(calibration_loss, discrimination_loss, label="High Spec")
-    
-    # Well calibrated model
-    calibration_loss, discrimination_loss = brier_scorer._partition_loss(y_true, y_pred_well_calibrated, brier_scorer.score)
-    plt.scatter(calibration_loss, discrimination_loss, label="Well Cal")
 
     plt.sca(axs[1])
     plt.title("Log Loss")
@@ -100,14 +102,14 @@ def roc():
     plt.xlabel("Calibration Loss")
     plt.ylabel("Discrimination Loss")
     plt.title("Log Loss\nDecomposition")
-    plt.xlim([0, 0.55])
-    plt.ylim([0, 0.55])
+    plt.xlim([0, 0.9])
+    plt.ylim([0, 0.9])
     for ax in axs:
         ax.legend(fontsize=8)
 
-    plt.suptitle("Comparing AUC-ROC, Log Loss, and Decomposition Plots")
+    plt.suptitle("Cancer Detection Performance\nAUC-ROC, Log Loss, and Decomposition Plots")
     plt.tight_layout()
-    plt.show()
+    return plt.gca()
 
 
 def dca():
@@ -196,9 +198,9 @@ def dca():
     
     axs[1].set_ylabel("")
     axs[2].set_ylabel("")
-    axs[0].set_title("Original")
-    axs[1].set_title("Brier Score")
-    axs[2].set_title("Log Loss")
+    axs[0].set_title("Decision Curve")
+    axs[1].set_title("Brier Curve")
+    axs[2].set_title("Log Loss Curve")
     axs[0].set_xlabel("C/L\n(Linear Scale)")
     axs[1].set_xlabel("C/L\n(Quadratic Scale)")
     axs[2].set_xlabel("C/L\n(Logistic Scale)")
@@ -209,16 +211,21 @@ def dca():
     for ax in axs:
         ax.legend(fontsize=8)
     plt.ylim([-.02, .24])
-    plt.suptitle("Decision Curve Analysis (with Rescaling)")
+    plt.suptitle("Cancer Detection Performance\nDecisions Curves as H-Measures")
     plt.tight_layout()
-    plt.show()
+    return plt.gca()
 
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
   parser.add_argument("--flag", action="store_true")
+  parser.add_argument("--out", type=str)
   args = parser.parse_args()
   if args.flag:
-    roc()
+    ax = roc()
   else:
-    dca()
+    ax = dca()
+  if args.out:
+    ax.figure.savefig(args.out)
+  else:
+    ax.figure.show()
