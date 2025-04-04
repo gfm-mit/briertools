@@ -1,8 +1,11 @@
+import argparse
 from matplotlib import pyplot as plt
 import numpy as np
 import scipy
 from scipy.stats import beta
 
+X_TICKS = [1.0 / 100, 1.0 / 10, 1.0 / 4.0, 1.0 / 2, 3.0 / 4, 9.0 / 10, 99.0 / 100]
+X_TICK_LABELS = "\n1/100 1/10 1/4 1/2 3/4 9/10 \n99/100".split(" ")
 
 def weights():
     z = np.linspace(-5, 5, 100)
@@ -27,10 +30,7 @@ def weights():
     plt.ylim([0, 3])
     plt.yticks([])
     plt.xlabel("C/L\n(Linear Scale)")
-    plt.xticks(
-        [1.0 / 101, 1.0 / 11, 1.0 / 4.0, 1.0 / 2, 3.0 / 4, 10.0 / 11, 100.0 / 101],
-        "\n1:100 1:10 1:3 1:1 3:1 10:1 \n100:1".split(" "),
-    )
+    plt.xticks(X_TICKS, X_TICK_LABELS)
     plt.legend(loc="upper right")
     plt.title("Distribution of $c$")
 
@@ -54,12 +54,7 @@ def weights():
     plt.ylim([0, 0.3])
     plt.yticks([])
     plt.xlabel("\nC / L\n(Logistic Scale)")
-    plt.xticks(
-        scipy.special.logit(
-            [1.0 / 101, 1.0 / 11, 1.0 / 4.0, 1.0 / 2, 3.0 / 4, 10.0 / 11, 100.0 / 101]
-        ),
-        "1:100 1:10 1:3 1:1 3:1 10:1 100:1".split(" "),
-    )
+    plt.xticks(scipy.special.logit(X_TICKS), X_TICK_LABELS)
     plt.legend(loc="upper right")
     plt.title(r"Distribution of $\log \frac{c}{1-c}$")
     for ax in axs:
@@ -67,7 +62,7 @@ def weights():
         plt.ylabel("Averaging Weight")
     plt.suptitle("Two Ways of Thinking about Cost Distributions")
     plt.tight_layout()
-    plt.show()
+    return plt.gca()
 
 
 def weights_hand():
@@ -111,10 +106,7 @@ def weights_hand():
     )
     plt.ylim([0, 3.8])
     plt.xlabel("C/L")
-    plt.xticks(
-        [1.0 / 101, 1.0 / 11, 1.0 / 4.0, 1.0 / 2, 3.0 / 4, 10.0 / 11, 100.0 / 101],
-        "\n1:100 1:10 1:3 1:1 3:1 10:1 \n100:1".split(" "),
-    )
+    plt.xticks(X_TICKS, X_TICK_LABELS)
     plt.legend(loc="upper right")
     plt.yticks([])
     plt.xlabel("C/L\n(Linear Scale)")
@@ -163,12 +155,7 @@ def weights_hand():
     )
     plt.ylim([0, 0.95])
     plt.xlabel("\nC / L\n(Logistic Scale)")
-    plt.xticks(
-        scipy.special.logit(
-            [1.0 / 101, 1.0 / 11, 1.0 / 4.0, 1.0 / 2, 3.0 / 4, 10.0 / 11, 100.0 / 101]
-        ),
-        "1:100 1:10 1:3 1:1 3:1 10:1 100:1".split(" "),
-    )
+    plt.xticks(scipy.special.logit(X_TICKS), X_TICK_LABELS)
     plt.legend(loc="upper right")
     plt.yticks([])
     plt.title(r"Distribution of $\log \frac{c}{1-c}$")
@@ -178,7 +165,18 @@ def weights_hand():
         plt.ylabel("Averaging Weight")
     plt.suptitle("Priors over Thresholds")
     plt.tight_layout()
-    plt.show()
+    return plt.gca()
 
-
-weights_hand()
+if __name__ == "__main__":
+  parser = argparse.ArgumentParser()
+  parser.add_argument("--flag", action="store_true")
+  parser.add_argument("--out", type=str)
+  args = parser.parse_args()
+  if args.flag:
+    ax = weights()
+  else:
+    ax = weights_hand()
+  if args.out:
+    ax.figure.savefig(args.out)
+  else:
+    ax.figure.show()

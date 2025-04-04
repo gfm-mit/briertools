@@ -114,7 +114,7 @@ def roc():
 
 def dca():
     # Generate true disease status with 20% prevalence
-    n_patients = 600
+    n_patients = 2000
     prevalence = 0.20
     y_true = generate_disease_status(n_patients=n_patients, prevalence=prevalence)
     
@@ -157,7 +157,7 @@ def dca():
     draw_curve(
         y_true,
         y_pred_well_calibrated,
-        scorer=brier_scorer,
+        scorer=dca_scorer,
         ticks=[1.0 / 101, 1.0 / 2],
         draw_range=[1e-2, 1 - 1e-2],
         fill_range=(0.01, 0.15),
@@ -166,20 +166,20 @@ def dca():
     draw_curve(
         y_true,
         y_pred_high_spec,
-        scorer=brier_scorer,
+        scorer=dca_scorer,
         ticks=[1.0 / 101, 1.0 / 2],
         draw_range=[1e-2, 1 - 1e-2],
         fill_range=(0.01, 0.15),
         label="High Specificity"
     )
-    plt.axhline(y=0.5, color="black", linestyle="--", lw=0.5, zorder=-10)
+    plt.axhline(y=0.2, color="black", linestyle="--", lw=0.5, zorder=-10)
     
     # Plot Log Loss
     plt.sca(axs[2])
     draw_curve(
         y_true,
         y_pred_well_calibrated,
-        scorer=brier_scorer,
+        scorer=dca_scorer,
         ticks=[1.0 / 101, 1.0 / 2],
         draw_range=[1e-2, 1 - 1e-2],
         fill_range=(0.01, 0.15),
@@ -188,13 +188,13 @@ def dca():
     draw_curve(
         y_true,
         y_pred_high_spec,
-        scorer=brier_scorer,
+        scorer=dca_scorer,
         ticks=[1.0 / 101, 1.0 / 2],
         draw_range=[1e-2, 1 - 1e-2],
         fill_range=(0.01, 0.15),
         label="High Specificity"
     )
-    plt.axhline(y=0.5, color="black", linestyle="--", lw=0.5, zorder=-10)
+    plt.axhline(y=0.2, color="black", linestyle="--", lw=0.5, zorder=-10)
     
     axs[1].set_ylabel("")
     axs[2].set_ylabel("")
@@ -203,7 +203,11 @@ def dca():
     axs[2].set_title("Log Loss Curve")
     axs[0].set_xlabel("C/L\n(Linear Scale)")
     axs[1].set_xlabel("C/L\n(Quadratic Scale)")
-    axs[2].set_xlabel("C/L\n(Logistic Scale)")
+    axs[2].set_xlabel("C/L\n(Log Scale)")
+    axs[1].set_xticks(
+        [0.01, 0.1, 0.25, 0.5, 0.75],
+        r"$\frac{1}{100}$ $\frac{1}{10}$ $\frac{1}{4}$ $\frac{1}{2}$ $\frac{3}{4}$".split(),
+    )
     axs[2].set_xticks(
         [0.01, 0.1, 0.25, 0.5, 0.75],
         r"$\frac{1}{100}$ $\frac{1}{10}$ $\frac{1}{4}$ $\frac{1}{2}$ $\frac{3}{4}$".split(),
@@ -211,6 +215,7 @@ def dca():
     for ax in axs:
         ax.legend(fontsize=8)
     plt.ylim([-.02, .24])
+    plt.yticks([0, 0.2], "0 $\pi$".split())
     plt.suptitle("Cancer Detection Performance\nDecisions Curves as H-Measures")
     plt.tight_layout()
     return plt.gca()
