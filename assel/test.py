@@ -4,6 +4,7 @@ import pandas as pd
 from sklearn.metrics import roc_auc_score
 from assel.simulation import ClinicalPredictionModel, generate_disease_status
 from assel.metrics import brier_score_binary_predictions, calculate_clinical_net_benefit, calculate_diagnostic_test_performance
+from briertools.scorers import BrierScorer
 
 PAPER_VALUES = [
   {
@@ -104,18 +105,27 @@ PAPER_VALUES = [
   }
 ]
 
-# --- Main Execution with New API ---
+# Create a mapping from old model names to new model names for result comparison
+MODEL_NAME_MAPPING = {
+    'Treat none (default negative)': 'Assume all negative',
+    'Treat all (default positive)': 'Assume all positive',
+    'High specificity test': 'Highly specific',
+    'High sensitivity test': 'Highly sensitive',
+    'Well calibrated model': 'Well calibrated',
+    'Risk overestimation model': 'Overestimating risk',
+    'Risk underestimation model': 'Underestimating risk',
+    'Severe risk underestimation model': 'Severely underestimating risk'
+}
 
-def run_simulation():
-    """Run the simulation using the ClinicalPredictionModel API and generate comparison tables."""
+def generate_simulation_results(add_brier=False):
+    """Generate simulation results using the ClinicalPredictionModel API.
     
-    # 1. Simulate True Disease Status (once)
+    Returns:
+        pd.DataFrame: DataFrame containing calculated metrics for all models.
+    """
+    # 1. Simulate True Disease Status
     y_true = generate_disease_status(n_patients=1_000_000, prevalence=0.20, seed=ClinicalPredictionModel.SEED)
-    
-    target_df = pd.DataFrame(PAPER_VALUES)
-    # Set index for easier comparison later
-    target_df.set_index('test', inplace=True)
-    print("Target metrics loaded.")
+    print("Disease status generated.")
     
     # --- Calculate Metrics from Simulation ---
     print("\n--- Calculating Metrics from Simulated Data ---")
@@ -125,24 +135,14 @@ def run_simulation():
     # Get all available models
     models = ClinicalPredictionModel.get_all_models()
     
-    # Create a mapping from old model names to new model names for result comparison
-    model_name_mapping = {
-        'Treat none (default negative)': 'Assume all negative',
-        'Treat all (default positive)': 'Assume all positive',
-        'High specificity test': 'Highly specific',
-        'High sensitivity test': 'Highly sensitive',
-        'Well calibrated model': 'Well calibrated',
-        'Risk overestimation model': 'Overestimating risk',
-        'Risk underestimation model': 'Underestimating risk',
-        'Severe risk underestimation model': 'Severely underestimating risk'
-    }
-    
     # Process each model
     for model_name, model_func in models.items():
+        if model_name == "Calibrated binary (not in paper)":
+            continue
         print(f"Processing model: {model_name}")
         
         # Get the original model name for result comparison
-        orig_model_name = model_name_mapping.get(model_name, model_name)
+        orig_model_name = MODEL_NAME_MAPPING.get(model_name, model_name)
         
         # Generate predictions
         y_pred = model_func(y_true)
@@ -180,6 +180,9 @@ def run_simulation():
             threshold_key = f'net_benefit_thresh_{int(threshold*100)}_percent'
             net_benefit = calculate_clinical_net_benefit(y_true, y_pred, threshold)
             result[threshold_key] = net_benefit
+
+        if add_brier:
+            result['brier_5_20'] = BrierScorer().score(y_true, y_pred, threshold_range=(0.05, 0.20)) / (0.20 - 0.05)
         
         results_list.append(result)
     
@@ -187,6 +190,19 @@ def run_simulation():
     results_df = pd.DataFrame(results_list)
     results_df.set_index('test', inplace=True)
     print("Metrics calculated.")
+    
+    return results_df
+
+def run_simulation():
+    """Run the simulation and compare results with target values."""
+    
+    # Load target data
+    target_df = pd.DataFrame(PAPER_VALUES)
+    target_df.set_index('test', inplace=True)
+    print("Target metrics loaded.")
+    
+    # Generate simulation results
+    results_df = generate_simulation_results()
     
     # --- Compare Results ---
     print("\n--- Comparison: Target vs. Calculated Metrics ---")
@@ -231,5 +247,61 @@ def run_simulation():
     
     return comparison_df, diff_df
 
+def paper_table():
+    results_df = generate_simulation_results(add_brier=True)
+    
+    # Format the DataFrame for LaTeX output
+    latex_df = results_df.copy()
+    
+    # Round numeric columns to appropriate precision
+    numeric_columns = ['auc', 'brier_score', 'brier_score_method_1', 'brier_score_method_2', 
+                       'net_benefit_thresh_5_percent', 'net_benefit_thresh_10_percent', 
+                       'net_benefit_thresh_20_percent', 'brier_5_20']
+    
+    for col in numeric_columns:
+        if col in latex_df.columns:
+            # Convert to numeric, handling NaN values
+            latex_df[col] = pd.to_numeric(latex_df[col], errors='coerce')
+            # Format with 4 decimal places
+            latex_df[col] = latex_df[col].map(lambda x: f"{x:.4f}" if pd.notnull(x) else "—")
+    
+    # Escape percent signs in sensitivity and specificity columns
+    for col in ['sensitivity', 'specificity']:
+        if col in latex_df.columns:
+            latex_df[col] = latex_df[col].astype(str).str.replace('%', '\\%')
+    
+    # Rename columns to escape percent signs and underscores for LaTeX
+    column_mapping = {
+        'net_benefit_thresh_5_percent': 'NB\\_5\\%',
+        'net_benefit_thresh_10_percent': 'NB\\_10\\%',
+        'net_benefit_thresh_20_percent': 'NB\\_20\\%',
+        'brier_score': 'brier\\_score',
+        'brier_score_method_1': 'brier\\_1',
+        'brier_score_method_2': 'brier\\_2',
+        'brier_5_20': 'brier\\_5\\_20'
+    }
+    latex_df = latex_df.rename(columns=column_mapping)
+    latex_df = latex_df.sort_values(by='NB\\_5\\%', ascending=False)
+
+    # Generate LaTeX table
+    latex_code = latex_df.to_latex(
+        index=True,
+        columns=['auc', 'brier\\_score', 
+                 'brier\\_1', 'brier\\_2', 'brier\\_5\\_20',
+                 'NB\\_5\\%', 'NB\\_10\\%', 
+                 'NB\\_20\\%'],
+        bold_rows=True,
+        float_format="%.4f",
+        na_rep="—",
+        escape=False  # Don't escape our manually escaped characters
+    )
+    
+    # Print LaTeX code
+    print("\n--- LaTeX Table ---\n")
+    print(latex_code)
+    
+    return latex_code
+
 if __name__ == "__main__":
-    run_simulation()
+    #run_simulation()
+    paper_table()
