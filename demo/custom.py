@@ -127,7 +127,8 @@ def dca():
     brier_scorer = BrierScorer()
     log_loss_scorer = LogLossScorer()
     
-    fig, axs = plt.subplots(1, 3, figsize=(7, 2.5), sharey=True)
+    # Changed to 1 row, 4 columns with specified width ratios
+    fig, axs = plt.subplots(1, 4, figsize=(8, 2.5), sharey=True, gridspec_kw={'width_ratios': [2, 2, 2, 1]})
     axs[2].set_xscale("log")
     demo.formatter.scale_x_one_minus_one_minus_x_2(axs[1])
     
@@ -151,6 +152,7 @@ def dca():
         fill_range=(0.05, 0.20),
         label="High Specificity"
     )
+    plt.axhline(y=0.2, color="black", linestyle="--", lw=0.5, zorder=-10)
     
     # Plot Brier Score
     plt.sca(axs[1])
@@ -213,8 +215,12 @@ def dca():
         [0.01, 0.1, 0.25, 0.5, 0.75],
         r"$\frac{1}{100}$ $\frac{1}{10}$ $\frac{1}{4}$ $\frac{1}{2}$ $\frac{3}{4}$".split(),
     )
-    for ax in axs:
-        ax.legend(fontsize=8)
+    for ax in axs[:3]:
+        ax.get_legend().remove()
+    handles, labels = axs[0].get_legend_handles_labels()
+    axs[3].legend(handles, ["Well\nCalibrated", "High\nSpecificity"], loc='center', fontsize=8, frameon=False)
+    axs[3].axis('off')
+
     plt.ylim([-.02, .24])
     plt.yticks([0, 0.2], "0 $\pi$".split())
     plt.suptitle("Cancer Detection Performance\nDecisions Curves as H-Measures")
