@@ -60,12 +60,13 @@ def roc():
     # Create scorers
     brier_scorer = LogLossScorer()
     
-    fig, axs = plt.subplots(1, 3, figsize=(7, 2.5))
+    # Changed to 1 row, 4 columns with specified width ratios
+    fig, axs = plt.subplots(1, 4, figsize=(7, 2.5), gridspec_kw={'width_ratios': [3, 3, 3, 1]})
     
     # Plot log loss curves
     plt.sca(axs[2])
-    draw_curve(y_true, y_pred_miscalibrated, scorer=brier_scorer, ticks=[1.0 / 101, 1.0 / 2], label="Sev. Miscal.")
-    draw_curve(y_true, y_pred_high_spec, scorer=brier_scorer, ticks=[1.0 / 101, 1.0 / 2], label="High Spec")
+    draw_curve(y_true, y_pred_miscalibrated, scorer=brier_scorer, ticks=[1.0 / 101, 100./101])
+    draw_curve(y_true, y_pred_high_spec, scorer=brier_scorer, ticks=[1.0 / 101, 100./101])
     
     # Plot ROC curves
     plt.sca(axs[1])
@@ -73,41 +74,49 @@ def roc():
     # Severly miscalibrated model
     fpr, tpr, _ = roc_curve(y_true, y_pred_miscalibrated)
     auc = roc_auc_score(y_true, y_pred_miscalibrated)
-    plt.plot(fpr, tpr, label=f"Sev. Miscal.\n(AUC: {auc:.2f})")
+    plt.plot(fpr, tpr, label=f"Severely\nMiscalibrated\n(AUC: {auc:.2f})")
 
     # High specificity test
     fpr, tpr, _ = roc_curve(y_true, y_pred_high_spec)
     auc = roc_auc_score(y_true, y_pred_high_spec)
-    plt.plot(fpr, tpr, label=f"High Spec\n(AUC: {auc:.2f})")
+    plt.plot(fpr, tpr, label=f"High\nSpecificity\n(AUC: {auc:.2f})")
     
     # Plot loss decomposition
     plt.sca(axs[0])
     
     # Severly miscalibrated model
     calibration_loss, discrimination_loss = brier_scorer._partition_loss(y_true, y_pred_miscalibrated, brier_scorer.score)
-    plt.scatter(calibration_loss, discrimination_loss, label="Sev\nMiscal.")
+    plt.scatter(calibration_loss, discrimination_loss)
 
     # High specificity test
     calibration_loss, discrimination_loss = brier_scorer._partition_loss(y_true, y_pred_high_spec, brier_scorer.score)
-    plt.scatter(calibration_loss, discrimination_loss, label="High\nSpec.")
+    plt.scatter(calibration_loss, discrimination_loss)
 
     plt.sca(axs[2])
+    plt.ylabel("Regret")
     plt.title("Log Loss")
     plt.sca(axs[1])
-    plt.legend()
-    plt.ylabel("True Positive Rate")
-    plt.xlabel("False Positive Rate")
+    plt.ylabel("TPR")
+    plt.xlabel("FPR")
     plt.title("AUC-ROC")
     plt.sca(axs[0])
     plt.xlabel("Calibration Loss")
     plt.ylabel("Discrimination Loss")
-    plt.title("Log Loss\nDecomposition")
-    plt.xlim([0, 0.5])
-    plt.ylim([0, 0.5])
-    for ax in axs:
-        ax.legend([])
+    plt.title("Decomposition")
+    plt.ylim([0, 0.45])
+    plt.gca().set_aspect('equal', adjustable='box')
+    
+    # Remove legends from the first three subplots and add to the fourth
+    for ax in axs[:3]:
+        if ax.get_legend():
+            ax.get_legend().remove()
+    
+    # Get handles and labels from plot 1 (ROC plot)
+    handles, labels = axs[1].get_legend_handles_labels()
+    axs[3].legend(handles, labels, loc='center', fontsize=8, frameon=False)
+    axs[3].axis('off')  # Turn off axes for the fourth subplot
 
-    plt.suptitle("Cancer Detection Performance\nAUC-ROC, Log Loss, and Decomposition Plots")
+    plt.suptitle("Cancer Detection Performance: Calibration vs Discrimination")
     plt.tight_layout()
     return plt.gca()
 
