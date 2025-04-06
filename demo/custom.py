@@ -139,7 +139,7 @@ def dca():
         scorer=dca_scorer,
         ticks=[1.0 / 101, 1.0 / 2],
         draw_range=[1e-2, 1 - 1e-2],
-        fill_range=(0.01, 0.15),
+        fill_range=(0.05, 0.20),
         label="Well Calibrated"
     )
     draw_curve(
@@ -148,7 +148,7 @@ def dca():
         scorer=dca_scorer,
         ticks=[1.0 / 101, 1.0 / 2],
         draw_range=[1e-2, 1 - 1e-2],
-        fill_range=(0.01, 0.15),
+        fill_range=(0.05, 0.20),
         label="High Specificity"
     )
     
@@ -160,7 +160,7 @@ def dca():
         scorer=dca_scorer,
         ticks=[1.0 / 101, 1.0 / 2],
         draw_range=[1e-2, 1 - 1e-2],
-        fill_range=(0.01, 0.15),
+        fill_range=(0.05, 0.20),
         label="Well Calibrated"
     )
     draw_curve(
@@ -169,7 +169,7 @@ def dca():
         scorer=dca_scorer,
         ticks=[1.0 / 101, 1.0 / 2],
         draw_range=[1e-2, 1 - 1e-2],
-        fill_range=(0.01, 0.15),
+        fill_range=(0.05, 0.20),
         label="High Specificity"
     )
     plt.axhline(y=0.2, color="black", linestyle="--", lw=0.5, zorder=-10)
@@ -182,7 +182,7 @@ def dca():
         scorer=dca_scorer,
         ticks=[1.0 / 101, 1.0 / 2],
         draw_range=[1e-2, 1 - 1e-2],
-        fill_range=(0.01, 0.15),
+        fill_range=(0.05, 0.20),
         label="Well Calibrated"
     )
     draw_curve(
@@ -191,11 +191,12 @@ def dca():
         scorer=dca_scorer,
         ticks=[1.0 / 101, 1.0 / 2],
         draw_range=[1e-2, 1 - 1e-2],
-        fill_range=(0.01, 0.15),
+        fill_range=(0.05, 0.20),
         label="High Specificity"
     )
     plt.axhline(y=0.2, color="black", linestyle="--", lw=0.5, zorder=-10)
     
+    axs[0].set_ylabel("Net Benefit\n(units of True Positives)")
     axs[1].set_ylabel("")
     axs[2].set_ylabel("")
     axs[0].set_title("Decision Curve")
