@@ -102,10 +102,10 @@ def roc():
     plt.xlabel("Calibration Loss")
     plt.ylabel("Discrimination Loss")
     plt.title("Log Loss\nDecomposition")
-    plt.xlim([0, 0.9])
-    plt.ylim([0, 0.9])
+    plt.xlim([0, 0.5])
+    plt.ylim([0, 0.5])
     for ax in axs:
-        ax.legend(fontsize=8)
+        ax.legend([])
 
     plt.suptitle("Cancer Detection Performance\nAUC-ROC, Log Loss, and Decomposition Plots")
     plt.tight_layout()
