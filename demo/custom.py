@@ -63,42 +63,42 @@ def roc():
     fig, axs = plt.subplots(1, 3, figsize=(7, 2.5))
     
     # Plot log loss curves
-    plt.sca(axs[1])
+    plt.sca(axs[2])
     draw_curve(y_true, y_pred_miscalibrated, scorer=brier_scorer, ticks=[1.0 / 101, 1.0 / 2], label="Sev. Miscal.")
     draw_curve(y_true, y_pred_high_spec, scorer=brier_scorer, ticks=[1.0 / 101, 1.0 / 2], label="High Spec")
     
     # Plot ROC curves
-    plt.sca(axs[0])
+    plt.sca(axs[1])
     
     # Severly miscalibrated model
     fpr, tpr, _ = roc_curve(y_true, y_pred_miscalibrated)
     auc = roc_auc_score(y_true, y_pred_miscalibrated)
-    plt.plot(fpr, tpr, label=f"Sev. Miscal. (AUC: {auc:.2f})")
+    plt.plot(fpr, tpr, label=f"Sev. Miscal.\n(AUC: {auc:.2f})")
 
     # High specificity test
     fpr, tpr, _ = roc_curve(y_true, y_pred_high_spec)
     auc = roc_auc_score(y_true, y_pred_high_spec)
-    plt.plot(fpr, tpr, label=f"High Spec (AUC: {auc:.2f})")
+    plt.plot(fpr, tpr, label=f"High Spec\n(AUC: {auc:.2f})")
     
     # Plot loss decomposition
-    plt.sca(axs[2])
+    plt.sca(axs[0])
     
     # Severly miscalibrated model
     calibration_loss, discrimination_loss = brier_scorer._partition_loss(y_true, y_pred_miscalibrated, brier_scorer.score)
-    plt.scatter(calibration_loss, discrimination_loss, label="Sev Miscal.")
+    plt.scatter(calibration_loss, discrimination_loss, label="Sev\nMiscal.")
 
     # High specificity test
     calibration_loss, discrimination_loss = brier_scorer._partition_loss(y_true, y_pred_high_spec, brier_scorer.score)
-    plt.scatter(calibration_loss, discrimination_loss, label="High Spec")
+    plt.scatter(calibration_loss, discrimination_loss, label="High\nSpec.")
 
-    plt.sca(axs[1])
+    plt.sca(axs[2])
     plt.title("Log Loss")
-    plt.sca(axs[0])
+    plt.sca(axs[1])
     plt.legend()
     plt.ylabel("True Positive Rate")
     plt.xlabel("False Positive Rate")
     plt.title("AUC-ROC")
-    plt.sca(axs[2])
+    plt.sca(axs[0])
     plt.xlabel("Calibration Loss")
     plt.ylabel("Discrimination Loss")
     plt.title("Log Loss\nDecomposition")
