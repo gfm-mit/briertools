@@ -263,7 +263,7 @@ def paper_table():
             # Convert to numeric, handling NaN values
             latex_df[col] = pd.to_numeric(latex_df[col], errors='coerce')
             # Format with 4 decimal places
-            latex_df[col] = latex_df[col].map(lambda x: f"{x:.4f}" if pd.notnull(x) else "—")
+            latex_df[col] = latex_df[col].map(lambda x: f"{x:.2f}" if pd.notnull(x) else "—")
     
     # Escape percent signs in sensitivity and specificity columns
     for col in ['sensitivity', 'specificity']:
