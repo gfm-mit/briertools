@@ -13,7 +13,7 @@ def weights():
     one = x * 0 + 1
     beta00 = one / x / (1 - x) / 40
     lower = np.minimum(one, beta00)
-    fig, axs = plt.subplots(1, 2, figsize=(8, 3))
+    fig, axs = plt.subplots(1, 3, figsize=(10, 3), gridspec_kw={'width_ratios': [2, 2, 1]})
     plt.sca(axs[0])
 
     color1 = plt.plot(x, one, label="Brier Score")[0].get_color()
@@ -31,7 +31,6 @@ def weights():
     plt.yticks([])
     plt.xlabel("C/L\n(Linear Scale)")
     plt.xticks(X_TICKS, X_TICK_LABELS)
-    plt.legend(loc="upper right")
     plt.title("Distribution of $c$")
 
     plt.sca(axs[1])
@@ -55,9 +54,13 @@ def weights():
     plt.yticks([])
     plt.xlabel("\nC / L\n(Logistic Scale)")
     plt.xticks(scipy.special.logit(X_TICKS), X_TICK_LABELS)
-    plt.legend(loc="upper right")
     plt.title(r"Distribution of $\log \frac{c}{1-c}$")
-    for ax in axs:
+
+    handles, labels = axs[0].get_legend_handles_labels()
+    axs[2].legend(handles, labels, loc='center', frameon=False)
+    axs[2].axis('off')
+
+    for ax in axs[:2]:
         plt.sca(ax)
         plt.ylabel("Averaging Weight")
     plt.suptitle("Two Ways of Thinking about Cost Distributions")
@@ -74,7 +77,8 @@ def weights_hand():
     beta28 = beta.pdf(x, 2, 8)
     shifted = 7 / (7 * x + 1 * (1 - x)) ** 2
     lower = np.minimum(one, beta00)
-    fig, axs = plt.subplots(1, 2, figsize=(8, 3))
+
+    fig, axs = plt.subplots(1, 3, figsize=(10, 3), gridspec_kw={'width_ratios': [2, 2, 1]})
     plt.sca(axs[0])
 
     color1 = plt.plot(x, one, label="Beta(1,1)", color="gray")[0].get_color()
@@ -92,7 +96,7 @@ def weights_hand():
     plt.axvline(x=1 / 8, color=color4, linestyle="--", lw=0.5, zorder=-10)
     plt.text(
         1 / 8,
-        -0.8,
+        -1.0,
         "1/8",
         color=color4,
         fontsize=8,
@@ -107,7 +111,6 @@ def weights_hand():
     plt.ylim([0, 3.8])
     plt.xlabel("C/L")
     plt.xticks(X_TICKS, X_TICK_LABELS)
-    plt.legend(loc="upper right")
     plt.yticks([])
     plt.xlabel("C/L\n(Linear Scale)")
     plt.title("Distribution of $c$")
@@ -136,7 +139,7 @@ def weights_hand():
     )
     plt.text(
         scipy.special.logit(1 / 8),
-        -0.2,
+        -0.25,
         "1/8",
         color=color4,
         fontsize=8,
@@ -154,13 +157,16 @@ def weights_hand():
         zorder=-10,
     )
     plt.ylim([0, 0.95])
-    plt.xlabel("\nC / L\n(Logistic Scale)")
+    plt.xlabel("C / L\n(Logistic Scale)")
     plt.xticks(scipy.special.logit(X_TICKS), X_TICK_LABELS)
-    plt.legend(loc="upper right")
     plt.yticks([])
     plt.title(r"Distribution of $\log \frac{c}{1-c}$")
 
-    for ax in axs:
+    handles, labels = axs[0].get_legend_handles_labels()
+    axs[2].legend(handles, labels, loc='center', frameon=False)
+    axs[2].axis('off')
+
+    for ax in axs[:2]:
         plt.sca(ax)
         plt.ylabel("Averaging Weight")
     plt.suptitle("Priors over Thresholds")
