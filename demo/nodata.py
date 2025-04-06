@@ -75,28 +75,29 @@ def weights_hand():
     beta00 = one / x / (1 - x) / 40
     beta22 = beta.pdf(x, 2, 2)
     beta28 = beta.pdf(x, 2, 8)
+    beta315 = beta.pdf(x, 3, 15)
     shifted = 7 / (7 * x + 1 * (1 - x)) ** 2
     lower = np.minimum(one, beta00)
 
     fig, axs = plt.subplots(1, 3, figsize=(10, 3), gridspec_kw={'width_ratios': [2, 2, 1]})
     plt.sca(axs[0])
 
-    color1 = plt.plot(x, one, label="Beta(1,1)", color="gray")[0].get_color()
-    color3 = plt.plot(x, beta22, label="Beta(2,2)")[0].get_color()
-    color4 = plt.plot(x, beta28, label="Beta(2,8)")[0].get_color()
+    color1 = plt.plot(x, one, label="Beta(1,1) [Brier]")[0].get_color()
+    plt.plot(x, beta22, label="Beta(2,2) [Hand]", linestyle=":", color=color1, alpha=0.7)
+    color4 = plt.plot(x, beta28, label="Beta(2,8) [Zhu, et al.]")[0].get_color()
+    plt.plot(x, beta315, label="Beta(3,15) [Zhu, et al.]", linestyle=":", color=color4, alpha=0.7)
     color5 = plt.plot(
         x,
         shifted,
         label="Shifted Brier",
         alpha=0.5,
         linewidth=2,
-        linestyle=":",
         zorder=-10,
     )[0].get_color()
     plt.axvline(x=1 / 8, color=color4, linestyle="--", lw=0.5, zorder=-10)
     plt.text(
         1 / 8,
-        -1.0,
+        -1.25,
         "1/8",
         color=color4,
         fontsize=8,
@@ -104,11 +105,7 @@ def weights_hand():
         va="center",
         rotation=0,
     )
-    plt.fill_between(x, one, one * 0, color=color1, alpha=0.2, zorder=-10)
-    plt.fill_between(
-        x, shifted, np.minimum(shifted, one), color=color5, alpha=0.2, zorder=-10
-    )
-    plt.ylim([0, 3.8])
+    plt.ylim([0, 5.2])
     plt.xlabel("C/L")
     plt.xticks(X_TICKS, X_TICK_LABELS)
     plt.yticks([])
@@ -119,19 +116,17 @@ def weights_hand():
     w = x * (1 - x)
     one = w
     beta00 = x * 0 + 0.1
-    beta39 = beta.pdf(x, 2, 8)
     lower = np.minimum(one, beta00)
-    plt.plot(z, one, color=color1, label="Brier")
-    plt.plot(z, beta22 * w, color=color3, label="Hand")
-    plt.plot(z, beta39 * w, color=color4, label="Zhu")
+    plt.plot(z, one, color=color1)
+    plt.plot(z, beta22 * w, color=color1, linestyle=":", alpha=0.7)
+    plt.plot(z, beta28 * w, color=color4)
+    plt.plot(z, beta315 * w, color=color4, linestyle=":", alpha=0.7)
     plt.plot(
         z,
         shifted * w,
         color=color5,
         alpha=0.5,
         linewidth=2,
-        linestyle=":",
-        label="Shifted Brier",
         zorder=-10,
     )
     plt.axvline(
@@ -139,7 +134,7 @@ def weights_hand():
     )
     plt.text(
         scipy.special.logit(1 / 8),
-        -0.25,
+        -0.155,
         "1/8",
         color=color4,
         fontsize=8,
@@ -147,16 +142,7 @@ def weights_hand():
         va="center",
         rotation=0,
     )
-    plt.fill_between(z, one, one * 0, color=color1, alpha=0.2, zorder=-10)
-    plt.fill_between(
-        z,
-        shifted * w,
-        np.minimum(shifted * w, one),
-        color=color5,
-        alpha=0.2,
-        zorder=-10,
-    )
-    plt.ylim([0, 0.95])
+    plt.ylim([0, 0.65])
     plt.xlabel("C / L\n(Logistic Scale)")
     plt.xticks(scipy.special.logit(X_TICKS), X_TICK_LABELS)
     plt.yticks([])
