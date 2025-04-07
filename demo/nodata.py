@@ -15,6 +15,10 @@ def weights():
     lower = np.minimum(one, beta00)
     fig, axs = plt.subplots(1, 3, figsize=(10, 3), gridspec_kw={'width_ratios': [2, 2, 1]})
     plt.sca(axs[0])
+    
+    # Add panel label A
+    axs[0].text(0.08, 0.95, 'A', transform=axs[0].transAxes, 
+                fontsize=12, fontweight='bold', va='top')
 
     color1 = plt.plot(x, one, label="Brier Score")[0].get_color()
     color2 = plt.plot(x, beta00, label="Log Loss")[0].get_color()
@@ -34,6 +38,11 @@ def weights():
     plt.title("Distribution of $c$")
 
     plt.sca(axs[1])
+    
+    # Add panel label B
+    axs[1].text(0.05, 0.95, 'B', transform=axs[1].transAxes, 
+                fontsize=12, fontweight='bold', va='top')
+
     w = x * (1 - x)
     one = w
     beta00 = x * 0 + 0.1
@@ -81,6 +90,10 @@ def weights_hand():
 
     fig, axs = plt.subplots(1, 3, figsize=(10, 3), gridspec_kw={'width_ratios': [2, 2, 1]})
     plt.sca(axs[0])
+    
+    # Add panel label A
+    axs[0].text(0.02, 0.95, 'A', transform=axs[0].transAxes, 
+                fontsize=12, fontweight='bold', va='top')
 
     color1 = plt.plot(x, one, label="Beta(1,1) [Brier]")[0].get_color()
     plt.plot(x, beta22, label="Beta(2,2) [Hand]", linestyle=":", color=color1, alpha=0.7)
@@ -113,6 +126,11 @@ def weights_hand():
     plt.title("Distribution of $c$")
 
     plt.sca(axs[1])
+    
+    # Add panel label B
+    axs[1].text(0.02, 0.95, 'B', transform=axs[1].transAxes, 
+                fontsize=12, fontweight='bold', va='top')
+
     w = x * (1 - x)
     one = w
     beta00 = x * 0 + 0.1

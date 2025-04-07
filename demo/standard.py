@@ -28,13 +28,13 @@ def draw_curve(y_true, y_pred, scorer, **kwargs):
     )
     return ax
 
-def curve_comparison(model1, model2, scorer, title, label1, label2, fill_min=1./21, draw_max=0.97):
+def curve_comparison(model1, model2, scorer, title, label1, label2, fill_min=1./21, draw_max=0.995, ticks=[1.0 / 101, 1.0/21, 1.0 / 6 ,1.0 / 2, 20./21]):
     """
     Recreate the jail() function using simulation.py for binary vs continuous model comparison.
     This implements the comparison between a continuous prediction model and binary tests
     as mentioned in comparisons.md.
     """
-    plt.figure(figsize=(4, 2))
+    plt.figure(figsize=(5, 2))
     
     # Generate true disease status with 20% prevalence
     n_patients = 6000
@@ -45,7 +45,7 @@ def curve_comparison(model1, model2, scorer, title, label1, label2, fill_min=1./
     # "Binary test with high sensitivity would be clinically preferable in scenarios where sensitivity is critical"
     y_pred_binary = model1(y_true)
     
-    ticks = np.array([1.0 / 101, 1.0/21, 1.0 / 6 ,1.0 / 2])
+    ticks = np.array(ticks)
     ticks = ticks[ticks < draw_max]
     
     # Draw the curve for high sensitivity binary test
@@ -74,8 +74,9 @@ def curve_comparison(model1, model2, scorer, title, label1, label2, fill_min=1./
         ticks=ticks
     )
     
+    plt.ylabel("Regret")
     plt.title(title)
-    plt.legend(fontsize=8)
+    plt.legend(fontsize=8, bbox_to_anchor=(1.05, 1), loc='upper left')
     plt.tight_layout()
     return plt.gca()
 
@@ -87,22 +88,24 @@ if __name__ == "__main__":
   if args.flag:
     ax = curve_comparison(
         model1=ClinicalPredictionModel.high_sensitivity_test,
-        label1="High Sensitivity",
+        label1="High\nSensitivity\n",
         model2=ClinicalPredictionModel.high_specificity_test,
-        label2="High Specificity",
+        label2="High\nSpecificity\n",
         scorer=LogLossScorer(),
         title="Average Sentencing Performance\nWith Bounded Tradeoffs",
         fill_min=1./101,
+        ticks=[1.0 / 101, 1.0 / 6 ,1.0 / 2, 100./101]
     ) 
   else:
     ax = curve_comparison(
         model1=ClinicalPredictionModel.well_calibrated_model,
-        label1="Continuous",
+        label1="Continuous\n",
         model2=ClinicalPredictionModel.high_specificity_test,
-        label2="High Specificity",
+        label2="High\nSpecificity\n",
         scorer=BrierScorer(),
         title="Cancer Detection Performance\nUnder Cost Heterogeneity",
-        draw_max=0.25
+        draw_max=0.25,
+        ticks=[1.0/21, 1.0 / 6]
     ) 
   if args.out:
     ax.figure.savefig(args.out)
