@@ -3,13 +3,8 @@ from matplotlib import pyplot as plt
 import numpy as np
 import scipy
 from briertools.scorers import LogLossScorer, BrierScorer, DCAScorer
-from sklearn.metrics import (
-    roc_auc_score,
-    roc_curve,
-    precision_recall_curve,
-)
 import demo.formatter
-from assel.simulation import ClinicalPredictionModel, generate_disease_status
+from briertools.assel.simulation import ClinicalPredictionModel, generate_disease_status
 
 
 def draw_curve(y_true, y_pred, scorer, **kwargs):
@@ -43,97 +38,6 @@ def draw_curve(y_true, y_pred, scorer, **kwargs):
             ax.legend()
     
     return ax
-
-
-def roc():
-    # Generate true disease status with 20% prevalence
-    n_patients = 600
-    prevalence = 0.20
-    y_true = generate_disease_status(n_patients=n_patients, prevalence=prevalence)
-    
-    # Use severely miscalibrated model
-    y_pred_miscalibrated = ClinicalPredictionModel.severe_risk_underestimation_model(y_true)
-    
-    # Use high specificity test model
-    y_pred_high_spec = ClinicalPredictionModel.calibrated_binary(y_true)
-    
-    # Create scorers
-    brier_scorer = LogLossScorer()
-    
-    # Changed to 1 row, 4 columns with specified width ratios
-    fig, axs = plt.subplots(1, 4, figsize=(7, 2.5), gridspec_kw={'width_ratios': [3, 3, 3, 1]})
-    
-    # Plot log loss curves
-    plt.sca(axs[2])
-    
-    # Add panel label C
-    axs[2].text(0.8, 0.95, 'C', transform=axs[2].transAxes, 
-                fontsize=12, fontweight='bold', va='top')
-    
-    draw_curve(y_true, y_pred_miscalibrated, scorer=brier_scorer, ticks=[1.0 / 101, 100./101])
-    draw_curve(y_true, y_pred_high_spec, scorer=brier_scorer, ticks=[1.0 / 101, 100./101])
-    
-    # Plot ROC curves
-    plt.sca(axs[1])
-    
-    # Add panel label B
-    axs[1].text(0.1, 0.95, 'B', transform=axs[1].transAxes, 
-                fontsize=12, fontweight='bold', va='top')
-    
-    # Severly miscalibrated model
-    fpr, tpr, _ = roc_curve(y_true, y_pred_miscalibrated)
-    auc = roc_auc_score(y_true, y_pred_miscalibrated)
-    plt.plot(fpr, tpr, label=f"Severely\nMiscalibrated\n(AUC: {auc:.2f})")
-
-    # High specificity test
-    fpr, tpr, _ = roc_curve(y_true, y_pred_high_spec)
-    auc = roc_auc_score(y_true, y_pred_high_spec)
-    plt.plot(fpr, tpr, label=f"High\nSpecificity\n(AUC: {auc:.2f})")
-    
-    # Plot loss decomposition
-    plt.sca(axs[0])
-    
-    # Add panel label A
-    axs[0].text(0.8, 0.95, 'A', transform=axs[0].transAxes, 
-                fontsize=12, fontweight='bold', va='top')
-    
-    # Severly miscalibrated model
-    calibration_loss, discrimination_loss = brier_scorer._partition_loss(y_true, y_pred_miscalibrated, brier_scorer.score)
-    plt.scatter(calibration_loss, discrimination_loss)
-
-    # High specificity test
-    calibration_loss, discrimination_loss = brier_scorer._partition_loss(y_true, y_pred_high_spec, brier_scorer.score)
-    plt.scatter(calibration_loss, discrimination_loss)
-
-    plt.sca(axs[2])
-    plt.ylabel("Regret")
-    plt.title("Log Loss")
-    plt.sca(axs[1])
-    plt.ylabel("TPR")
-    plt.xlabel("FPR")
-    plt.title("AUC-ROC")
-    plt.gca().set_aspect('equal', adjustable='box')
-    plt.sca(axs[0])
-    plt.xlabel("Calibration Loss")
-    plt.ylabel("Discrimination Loss")
-    plt.title("Decomposition")
-    plt.xlim([0, 0.45])
-    plt.ylim([0, 0.45])
-    plt.gca().set_aspect('equal', adjustable='box')
-    
-    # Remove legends from the first three subplots and add to the fourth
-    for ax in axs[:3]:
-        if ax.get_legend():
-            ax.get_legend().remove()
-    
-    # Get handles and labels from plot 1 (ROC plot)
-    handles, labels = axs[1].get_legend_handles_labels()
-    axs[3].legend(handles, labels, loc='center', fontsize=8, frameon=False)
-    axs[3].axis('off')  # Turn off axes for the fourth subplot
-
-    plt.suptitle("Cancer Detection Performance: Calibration vs Discrimination")
-    plt.tight_layout()
-    return plt.gca()
 
 
 def dca():
@@ -269,13 +173,9 @@ def dca():
 
 if __name__ == "__main__":
   parser = argparse.ArgumentParser()
-  parser.add_argument("--flag", action="store_true")
   parser.add_argument("--out", type=str)
   args = parser.parse_args()
-  if args.flag:
-    ax = roc()
-  else:
-    ax = dca()
+  ax = dca()
   if args.out:
     ax.figure.savefig(args.out)
   else:
