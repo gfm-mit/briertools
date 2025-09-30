@@ -337,6 +337,7 @@ class MetricScorer(object):
         ticks: list[float] = None,
         alpha: float = 0.3,
         label: str = None,
+        use_data_label: bool = True
     ) -> None:
         """
         Plots a curve indicating this class's scoring function evaluated on y_pred
@@ -370,9 +371,9 @@ class MetricScorer(object):
             threshold_range,
             fill_range=fill_range,
         )
-        if label:
+        if label and use_data_label:
             label = label + " " + data_label
-        else:
+        elif not label:
             label = data_label
         color = self._plot_curve_and_get_colors(ax, x_to_plot, y_to_plot, label)
         if fill_range:
@@ -394,7 +395,7 @@ class MetricScorer(object):
         ax.set_ylabel(self.ylabel)
         ax.set_xlabel(self.xlabel)
         ax.set_title(self.title)
-        ax.legend()
+        ax.legend(loc="lower right")
         plt.tight_layout()
 
 
@@ -443,7 +444,7 @@ class DCAScorer(MetricScorer):
         loss = self.score(y_true, y_pred, threshold_range)
         pi = np.mean(y_true)
 
-        return thresholds, pi - costs / (1 - thresholds), f"Net Benefit: {loss:.2g}"
+        return thresholds, pi - costs / (1 - thresholds), f"Net Benefit: {loss:.4g}"
 
     def _get_fill_between_params(
         self,
@@ -530,7 +531,7 @@ class LogLossScorer(MetricScorer):
     Log loss scorer object.
     """
     default_threshold_range = (0.001, 0.999)
-    xlabel = "C/L (as C:L-C odds)"
+    xlabel = "C:(L-C) odds"
     ylabel = "Regret (lower is better)"
     title = "Brier Curve (Log Loss Version)"
     special_xticks = True
@@ -568,7 +569,7 @@ class LogLossScorer(MetricScorer):
         expit = scipy.special.expit(zscore)
         costs = self._get_regret(y_true, y_pred, expit)
         loss = self.score(y_true, y_pred, threshold_range=fill_range)
-        return zscore, costs, f"Log Loss: {loss:.3g}"
+        return zscore, costs, f"Log Loss: {loss:.4g}"
 
     def _get_fill_between_params(
         self,
@@ -734,7 +735,7 @@ class BrierScorer(MetricScorer):
     special_xticks = True
     title = "Brier Curve"
     ylabel = "Regret (lower is better)"
-    xlabel = "C/L\n(Linear Scale)"
+    xlabel = "C:(L-C)"
 
     def _make_x_and_y_curves(
         self,
@@ -774,7 +775,7 @@ class BrierScorer(MetricScorer):
         return (
             thresholds,
             costs,
-            f"Brier: {loss:.3g}",
+            f"Brier: {loss:.4g}",
         )
 
     def _get_fill_between_params(
